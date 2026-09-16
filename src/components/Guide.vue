@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels } from '../domain/data';
 import { ATTRIBUTES, emptyAttributes } from '../domain/types';
 import type { Attributes, Character, Playthrough, SaveData } from '../domain/types';
@@ -11,9 +11,11 @@ const unreadableSave = loaded.kind === 'invalid';
 const setupName = ref('My Expedition'); const selected = ref<('gustave'|'lune')[]>(['gustave','lune']); const saveError = ref(''); const notice = ref('');
 const revealStage = ref<'warning'|'identity'|'terminal'|null>(null); const setupCharacter = ref<Character | null>(null); const draft = ref({level:1, points:0, invested:emptyAttributes()});
 if (loaded.kind === 'invalid') saveError.value = loaded.error;
+const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') { revealStage.value = null; setupCharacter.value = null; } };
+onMounted(() => window.addEventListener('keydown', closeOnEscape)); onUnmounted(() => window.removeEventListener('keydown', closeOnEscape));
 const active = computed(() => state.value?.playthroughs.find(p => p.id === state.value?.activeId) ?? null);
 const persist = () => { if (!state.value) return; const result = save(state.value); saveError.value = result.error ?? ''; if (result.ok) notice.value = 'Saved'; };
-function start() { if (unreadableSave) return; const chars = selected.value.map(id0 => { const d=INITIAL_CHARACTERS[id0]; return {id:id0,name:d.name,level:1,invested:{...d.defaults},points:0,tracked:true,revealed:true}; }); const p:Playthrough={id:id('playthrough'),name:setupName.value.trim()||'My Expedition',characters:chars,nextRevealIndex:0,revision:0}; state.value={version:1,playthroughs:[p],activeId:p.id}; persist(); }
+function start() { if (unreadableSave) return; const chars = selected.value.map(id0 => { const d=INITIAL_CHARACTERS[id0]; return {id:id0,name:d.name,level:1,invested:{...d.defaults},points:3,tracked:true,revealed:true}; }); const p:Playthrough={id:id('playthrough'),name:setupName.value.trim()||'My Expedition',characters:chars,nextRevealIndex:0,revision:0}; state.value={version:1,playthroughs:[p],activeId:p.id}; persist(); }
 function beginSetup(character: Character) { setupCharacter.value=character; draft.value={level:character.level,points:character.points,invested:{...character.invested}}; }
 function submitProgress() { if (!active.value || !setupCharacter.value) return; const p=active.value; const i=p.characters.findIndex(c=>c.id===setupCharacter.value!.id); p.characters[i]=updateProgress(p.characters[i],draft.value); p.revision++; setupCharacter.value=null; persist(); }
 function advise(c: Character) { c.pending=recommend(c); persist(); }
@@ -27,7 +29,7 @@ function cancelReveal() { revealStage.value=null; }
   <main class="shell">
     <p v-if="saveError" class="error" role="alert">{{saveError}}</p>
     <header><p class="eyebrow">EXPEDITION 33 · FIELD GUIDE</p><h1>Keep your build on course.</h1><p class="lede">A quiet companion for recording real progress and choosing the next safe step.</p></header>
-    <section v-if="!state" class="card setup"><h2>Start a playthrough</h2><p>Name this run and choose only the characters you want to track now.</p><label>Playthrough name<input v-model="setupName" aria-label="Playthrough name" :disabled="unreadableSave" /></label><fieldset><legend>Initial characters</legend><label v-for="(d,key) in INITIAL_CHARACTERS" :key="key" class="check"><input type="checkbox" :value="key" v-model="selected" :disabled="unreadableSave" /> {{d.name}}</label></fieldset><button class="primary" @click="start" :disabled="unreadableSave">Create playthrough</button></section>
+    <section v-if="!state" class="card setup"><h2>Start a playthrough</h2><p>Name this run and choose only the characters you want to track now.</p><label>Playthrough name<input v-model="setupName" aria-label="Playthrough name" :disabled="unreadableSave" /></label><fieldset><legend>Initial characters</legend><label v-for="(d,key) in INITIAL_CHARACTERS" :key="key" class="check"><input type="checkbox" :value="key" v-model="selected" :disabled="unreadableSave" /> {{d.name}}</label></fieldset><button class="primary" @click="start" :disabled="unreadableSave || !!saveError">Create playthrough</button></section>
     <template v-else-if="active">
       <nav class="bar"><strong>{{active.name}}</strong><span class="save-state" aria-live="polite">{{notice}}</span></nav>
       <section class="party"><article v-for="c in active.characters.filter(c=>c.tracked)" :key="c.id" class="card character"><div class="card-head"><div><p class="eyebrow">TRACKED CHARACTER</p><h2>{{c.name}}</h2></div><span class="level">LV {{c.level}}</span></div><div class="stats"><div v-for="a in ATTRIBUTES" :key="a"><span>{{attributeLabels[a]}}</span><b>{{c.invested[a]}}</b></div></div><p v-if="c.pending" class="advice"><strong>Pending recommendation</strong><br /><span v-for="(amount,a) in c.pending.spend" :key="a">+{{amount}} {{attributeLabels[a] }} </span><br /><small>{{c.pending.explanation}}</small></p><div class="actions"><button @click="beginSetup(c)">Update progress</button><button @click="advise(c)">Get advice <span class="sr-only">for {{c.name}}</span></button><button v-if="c.pending" class="primary" @click="confirm(c)">I've applied these</button></div><p class="points">{{c.points}} attribute points available</p></article></section>
