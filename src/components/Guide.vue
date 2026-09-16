@@ -5,10 +5,11 @@ import { ATTRIBUTES, emptyAttributes } from '../domain/types';
 import type { Attributes, Character, Playthrough, SaveData } from '../domain/types';
 import { applyRecommendation, recommend, updateProgress } from '../domain/rules';
 import { id, load, save } from '../domain/storage';
-const stored = typeof localStorage !== 'undefined' ? load() : null;
-const state = ref<SaveData | null>(stored);
+const loaded = typeof localStorage !== 'undefined' ? load() : {kind:'missing' as const};
+const state = ref<SaveData | null>(loaded.kind === 'loaded' ? loaded.data : null);
 const setupName = ref('My Expedition'); const selected = ref<('gustave'|'lune')[]>(['gustave','lune']); const saveError = ref(''); const notice = ref('');
 const revealStage = ref<'warning'|'identity'|'terminal'|null>(null); const setupCharacter = ref<Character | null>(null); const draft = ref({level:1, points:0, invested:emptyAttributes()});
+if (loaded.kind === 'invalid') saveError.value = loaded.error;
 const active = computed(() => state.value?.playthroughs.find(p => p.id === state.value?.activeId) ?? null);
 const persist = () => { if (!state.value) return; const result = save(state.value); saveError.value = result.error ?? ''; if (result.ok) notice.value = 'Saved'; };
 function start() { const chars = selected.value.map(id0 => { const d=INITIAL_CHARACTERS[id0]; return {id:id0,name:d.name,level:1,invested:{...d.defaults},points:0,tracked:true,revealed:true}; }); const p:Playthrough={id:id('playthrough'),name:setupName.value.trim()||'My Expedition',characters:chars,nextRevealIndex:0,revision:0}; state.value={version:1,playthroughs:[p],activeId:p.id}; persist(); }
@@ -23,6 +24,7 @@ function cancelReveal() { revealStage.value=null; }
 </script>
 <template>
   <main class="shell">
+    <p v-if="saveError" class="error" role="alert">{{saveError}}</p>
     <header><p class="eyebrow">EXPEDITION 33 · FIELD GUIDE</p><h1>Keep your build on course.</h1><p class="lede">A quiet companion for recording real progress and choosing the next safe step.</p></header>
     <section v-if="!state" class="card setup"><h2>Start a playthrough</h2><p>Name this run and choose only the characters you want to track now.</p><label>Playthrough name<input v-model="setupName" aria-label="Playthrough name" /></label><fieldset><legend>Initial characters</legend><label v-for="(d,key) in INITIAL_CHARACTERS" :key="key" class="check"><input type="checkbox" :value="key" v-model="selected" /> {{d.name}}</label></fieldset><button class="primary" @click="start">Create playthrough</button></section>
     <template v-else-if="active">
