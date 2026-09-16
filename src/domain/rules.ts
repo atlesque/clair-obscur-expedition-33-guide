@@ -1,12 +1,14 @@
 import { ATTRIBUTES, cloneAttributes } from './types';
 import type { Attributes, Character, Recommendation } from './types';
-const weights = (character: Character): Record<keyof Attributes,number> => character.id === 'lune' ? {vitality:0.4,might:0.2,agility:0.2,defence:0.1,luck:0.1} : {vitality:0.4,might:0.3,agility:0.15,defence:0.1,luck:0.05};
+import { ATTRIBUTE_PRIORITIES } from './data';
+const weights = (character: Character): Record<keyof Attributes, number> => (ATTRIBUTE_PRIORITIES[character.id as keyof typeof ATTRIBUTE_PRIORITIES] ?? ATTRIBUTE_PRIORITIES.default).weights;
 export function recommend(character: Character): Recommendation {
   const spend: Partial<Attributes> = {}; let left = character.points; const target=weights(character);
   while (left) {
     const candidates = ATTRIBUTES.filter(a => character.invested[a] + (spend[a] ?? 0) < 99);
     const attribute = candidates.sort((a,b) => {
-      const deficit = (a: keyof Attributes) => target[a] - (character.invested[a] + (spend[a] ?? 0)) / Math.max(1, character.invested[a] + (spend[a] ?? 0) + 1);
+      const total = ATTRIBUTES.reduce((sum, key) => sum + character.invested[key] + (spend[key] ?? 0), 0);
+      const deficit = (a: keyof Attributes) => target[a] * (total + 1) - (character.invested[a] + (spend[a] ?? 0));
       return deficit(b) - deficit(a);
     })[0];
     if (!attribute) break;
