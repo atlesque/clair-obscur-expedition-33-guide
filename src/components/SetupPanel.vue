@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { INITIAL_CHARACTERS } from '../domain/data'; import { emptyAttributes } from '../domain/types'; import type { Attributes } from '../domain/types'; import { ref, watch } from 'vue';
-defineProps<{ name: string; selected: string[]; disabled: boolean }>();
+const props = defineProps<{ name: string; selected: string[]; disabled: boolean }>();
 const emit = defineEmits<{ 'update:name': [value: string]; 'update:selected': [value: string[]]; start: [value: Record<string, {level:number;points:number;invested:Attributes}|null>] }>(); const midway = ref(false); const drafts = ref<Record<string,{level:number;points:number;invested:Attributes}|null>>({});
 function toggle(key:string){ if(!midway.value) return; if(!drafts.value[key]) drafts.value[key]={level:1,points:0,invested:emptyAttributes()}; }
 function start(){ emit('start', drafts.value); }
-watch(() => selected, value => { if (midway.value) value.value.forEach(toggle); }, { deep: true });
+watch(() => props.selected, value => {
+  for (const key of Object.keys(drafts.value)) if (!value.includes(key)) delete drafts.value[key];
+  if (midway.value) value.forEach(toggle);
+}, { deep: true });
 </script>
 <template><section class="card setup"><h2>Start a playthrough</h2><p>Name this run and choose only the characters you want to track now.</p><label>Playthrough name<input :value="name" aria-label="Playthrough name" :disabled="disabled" @input="$emit('update:name', ($event.target as HTMLInputElement).value)" /></label><fieldset><legend>Initial characters (choose at least one)</legend><label v-for="(d,key) in INITIAL_CHARACTERS" :key="key" class="check"><input type="checkbox" :value="key" :checked="selected.includes(key)" :disabled="disabled" @change="$emit('update:selected', [...selected.includes(key) ? selected.filter(v => v !== key) : [...selected, key]])" /> {{ d.name }}<small>Start with verified level-one defaults</small></label></fieldset><label class="check"><input type="checkbox" v-model="midway" @change="selected.forEach(toggle)" :disabled="disabled" /> I am joining this playthrough midway</label><div v-if="midway" v-for="key in selected" :key="key"><h3>{{ INITIAL_CHARACTERS[key as keyof typeof INITIAL_CHARACTERS].name }} actual progress</h3><label>Current level<input type="number" min="1" max="99" v-model.number="drafts[key]!.level" @focus="toggle(key)" /></label><label>Available attribute points<input type="number" min="0" v-model.number="drafts[key]!.points" @focus="toggle(key)" /></label><div v-for="a in ['vitality','might','agility','defence','luck']" :key="a"><label>{{ a }}<input type="number" min="0" max="99" v-model.number="drafts[key]!.invested[a as keyof Attributes]" @focus="toggle(key)" /></label></div></div><button class="primary" :disabled="disabled || !selected.length" @click="start">Create playthrough</button></section></template>

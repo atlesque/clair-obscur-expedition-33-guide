@@ -1,7 +1,7 @@
 # Core review record
 
 Base: `b9296b3`  
-Reviewed head: `fa2aba8`
+Reviewed head: `7c9e732` plus the follow-up fixes in this branch
 
 ## Standards
 
@@ -15,5 +15,8 @@ Reviewed head: `fa2aba8`
 - Invalid progress submissions previously threw through the Vue event handler. Resolved by rendering an accessible `role=alert` error in the focused progress dialog.
 - Failed writes previously left unsaved state visible. Mutations now snapshot and restore state on a failed save, preserving a truthful error.
 - Dialogs now focus their first control, trap Tab navigation, inert the background, close on Escape, and restore focus to the invoking control.
+- Progress forms use explicit domain validation with `novalidate`, so invalid values consistently render the accessible inline error instead of being intercepted by native browser validation.
+- Pending advice can be dismissed and that dismissal persists. Later-character setup cancellation clears the candidate state, and deselecting a midway character discards its draft so a later re-selection starts from defaults.
+- Extracted component styling restores readable headings, stat grids, controls, and modal contrast after the Tailwind reset.
 
-Validation: `pnpm test`, `pnpm run typecheck`, and `pnpm run check` pass. The static build was attempted; Astro could not write its generated `.astro/content.d.ts` in this managed worktree.
+Validation: `pnpm test`, `pnpm run typecheck`, `pnpm run check`, `pnpm run build`, and `pnpm run test:browser` pass. Browser coverage runs 26 cases across desktop and phone projects, including invalid progress, advice dismissal persistence, later-character cancellation, and midway draft reset.
