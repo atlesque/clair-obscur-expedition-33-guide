@@ -19,4 +19,4 @@ Reviewed head: `7c9e732` plus the follow-up fixes in this branch
 - Pending advice can be dismissed and that dismissal persists. Later-character setup cancellation clears the candidate state, and deselecting a midway character discards its draft so a later re-selection starts from defaults.
 - Extracted component styling restores readable headings, stat grids, controls, and modal contrast after the Tailwind reset.
 
-Validation: `pnpm test`, `pnpm run typecheck`, `pnpm run check`, `pnpm run build`, and `pnpm run test:browser` pass. Browser coverage runs 26 cases across desktop and phone projects, including invalid progress, advice dismissal persistence, later-character cancellation, and midway draft reset.
+Validation: `pnpm test`, `pnpm run typecheck`, `pnpm run check`, `pnpm run build`, and `pnpm run test:browser` pass. Browser coverage runs 28 cases across desktop and phone projects, including invalid progress, advice dismissal persistence, later-character cancellation, midway draft reset, and restoration of verified defaults when midway setup is turned off.

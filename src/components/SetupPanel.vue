@@ -3,7 +3,7 @@ import { INITIAL_CHARACTERS } from '../domain/data'; import { emptyAttributes } 
 const props = defineProps<{ name: string; selected: string[]; disabled: boolean }>();
 const emit = defineEmits<{ 'update:name': [value: string]; 'update:selected': [value: string[]]; start: [value: Record<string, {level:number;points:number;invested:Attributes}|null>] }>(); const midway = ref(false); const drafts = ref<Record<string,{level:number;points:number;invested:Attributes}|null>>({});
 function toggle(key:string){ if(!midway.value) return; if(!drafts.value[key]) drafts.value[key]={level:1,points:0,invested:emptyAttributes()}; }
-function start(){ emit('start', drafts.value); }
+function start(){ emit('start', midway.value ? drafts.value : {}); }
 watch(() => props.selected, value => {
   for (const key of Object.keys(drafts.value)) if (!value.includes(key)) delete drafts.value[key];
   if (midway.value) value.forEach(toggle);
