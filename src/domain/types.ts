@@ -1,8 +1,8 @@
 export type Attribute = 'vitality' | 'might' | 'agility' | 'defence' | 'luck';
 export type CharacterId = 'gustave' | 'lune' | string;
 export type Attributes = Record<Attribute, number>;
-export type Character = { id: CharacterId; name: string; level: number; invested: Attributes; points: number; tracked: boolean; revealed: boolean; pending?: Recommendation; };
-export type Recommendation = { characterId: CharacterId; base: Attributes; basePoints: number; spend: Partial<Attributes>; points: number; explanation: string; revision: number };
+export type Character = { id: CharacterId; name: string; level: number; invested: Attributes; points: number; tracked: boolean; revealed: boolean; pending?: Recommendation; skillSetupComplete?: boolean; unlockedSkills?: string[]; skillPoints?: number; loadout?: string[]; scaling?: { attributes: Partial<Record<Attribute, string>> }; };
+export type Recommendation = { characterId: CharacterId; base: Attributes; basePoints?: number; spend: Partial<Attributes>; points: number; explanation: string; revision: number };
 export type Playthrough = { id: string; name: string; characters: Character[]; nextRevealIndex: number; revision: number };
 export type SaveData = { version: 1; playthroughs: Playthrough[]; activeId: string };
 
