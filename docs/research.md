@@ -13,3 +13,4 @@ Skill costs and visible tree entries are transcribed from the Gamer Guides datab
 - [Gamer Guides skill database](https://earth.gamerguides.com/clair-obscur-expedition-33/database/skills/maelle)
 - [Gamer Guides character skill guide](https://www.gamerguides.com/clair-obscur-expedition-33/guide/characters/playable/maelle-guide-best-skills-and-weapons)
 - [Interface In Game skill-tree screenshot](https://interfaceingame.com/screenshots/clair-obscur-expedition-33-skill-tree/)
+- [Community skill table with SP prerequisites](https://clair-obscur.fandom.com/wiki/Skills)

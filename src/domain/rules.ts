@@ -29,7 +29,7 @@ export function recommendSkill(character: Character): SkillRecommendation | null
   if (character.skillAcquisition === 'learned') return { characterId: character.id, save: true, points: 0, explanation: 'This character learns skills through discovered encounters. Record a skill after you confirm learning it; no skill-point purchase is suggested.', revision: character.level, baseSkillPoints: character.skillPoints, baseUnlockedSkills: [...character.unlockedSkills] };
   const owned = new Set(character.unlockedSkills);
   const discovered = new Set(character.discoveredSkillIds ?? []);
-  const available = (SKILLS[character.id] ?? []).find(skill => !skill.starting && !skill.unsupportedPurchase && (!skill.storyGated || discovered.has(skill.id)) && !owned.has(skill.id) && (skill.requires ?? []).every(id => owned.has(id)) && skill.cost <= character.skillPoints!);
+  const available = (SKILLS[character.id] ?? []).find(skill => !skill.starting && !skill.unsupportedPurchase && (!skill.storyGated || discovered.has(skill.id)) && !owned.has(skill.id) && (skill.requires ?? []).every(id => owned.has(id)) && (skill.requiresAny ?? []).every(group => group.some(id => owned.has(id))) && skill.cost <= character.skillPoints!);
   return { characterId: character.id, skillId: available?.id, save: !available, points: available?.cost ?? 0, explanation: available ? `Save ${available.cost} skill point${available.cost === 1 ? '' : 's'} to unlock ${available.name}.` : 'Save your skill points until a visible skill is affordable and its prerequisites are met.', revision: character.level, baseSkillPoints: character.skillPoints, baseUnlockedSkills: [...character.unlockedSkills] };
 }
 
@@ -37,7 +37,7 @@ export function applySkillRecommendation(character: Character, recommendation: S
   if (recommendation.characterId !== character.id || recommendation.revision !== character.level || !character.skillSetupComplete || character.skillPoints === undefined || !character.unlockedSkills || recommendation.baseSkillPoints !== character.skillPoints || JSON.stringify(recommendation.baseUnlockedSkills) !== JSON.stringify(character.unlockedSkills)) return character;
   if (recommendation.save || !recommendation.skillId) return { ...character, pendingSkill: undefined };
   const skill = (SKILLS[character.id] ?? []).find(candidate => candidate.id === recommendation.skillId);
-  if (!skill || skill.starting || skill.unsupportedPurchase || recommendation.points !== skill.cost || (skill.storyGated && !(character.discoveredSkillIds ?? []).includes(skill.id)) || character.unlockedSkills.includes(skill.id) || !(skill.requires ?? []).every(id => character.unlockedSkills!.includes(id)) || skill.cost > character.skillPoints) return character;
+  if (!skill || skill.starting || skill.unsupportedPurchase || recommendation.points !== skill.cost || (skill.storyGated && !(character.discoveredSkillIds ?? []).includes(skill.id)) || character.unlockedSkills.includes(skill.id) || !(skill.requires ?? []).every(id => character.unlockedSkills!.includes(id)) || !(skill.requiresAny ?? []).every(group => group.some(id => character.unlockedSkills!.includes(id))) || skill.cost > character.skillPoints) return character;
   return { ...character, unlockedSkills: [...character.unlockedSkills, skill.id], skillPoints: character.skillPoints - skill.cost, pendingSkill: undefined };
 }
 

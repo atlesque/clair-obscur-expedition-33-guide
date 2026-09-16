@@ -52,4 +52,10 @@ describe('public progression guidance', () => {
     const current = character({ id: 'verso', skillSetupComplete: true, skillPoints: 10, unlockedSkills: [] });
     expect(recommendSkill(current)?.save).toBe(true);
   });
+
+  it('accepts one branch of an OR prerequisite and rejects none', () => {
+    const base = character({ id: 'lune', skillSetupComplete: true, skillPoints: 4, unlockedSkills: ['wildfire','thermal-transfer','healing-light','electrify','earth-rising','thunderfall','rebirth','fire-rage','revitalization','storm-caller','crippling-tsunami','crustal-crush','hell','terraquake','rockslide','lightning-dance'] });
+    expect(recommendSkill(base)?.skillId).toBe('mayhem');
+    expect(recommendSkill({ ...base, unlockedSkills: base.unlockedSkills!.filter((id) => id !== 'electrify' && id !== 'thermal-transfer') })?.skillId).not.toBe('mayhem');
+  });
 });
