@@ -30,6 +30,7 @@ const saveError = ref(loaded.kind === "invalid" ? loaded.error : "");
 const notice = ref("");
 const revealStage = ref<"warning" | "identity" | "terminal" | null>(null);
 const setupCharacter = ref<Character | null>(null);
+const freshSetup = ref(false);
 const formError = ref("");
 const addingCandidate = ref(false);
 const revealedCandidate = ref<(typeof LATER_CHARACTERS)[number] | null>(null);
@@ -41,12 +42,17 @@ const active = computed(
     null,
 );
 const removed = computed(() => active.value?.characters.filter((c) => !c.tracked) ?? []);
-function manageSwitch(id0:string){if(!state.value)return;state.value=switchPlaythrough(state.value,id0);setupCharacter.value=null;revealStage.value=null;managementOpen.value=false;persist(null)}
-function manageCreate(){if(!state.value)return;const chars=newSelected.value.map((key)=>{const d=INITIAL_CHARACTERS[key as keyof typeof INITIAL_CHARACTERS];return {id:key,name:d.name,level:1,invested:{...d.defaults},points:3,tracked:true,revealed:true}});state.value=createPlaythrough(state.value,newName.value,chars);newName.value="";managementOpen.value=false;persist(null)}
-function manageRemove(c:Character){if(!state.value||!active.value)return;const next=removeCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p)=>p.id===next.id?next:p);persist(null)}
-function manageRestore(c:Character){if(!state.value||!active.value)return;const next=restoreCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p)=>p.id===next.id?next:p);managementOpen.value=false;persist(null)}
-function manageReset(){if(!state.value||!active.value)return;state.value=resetPlaythrough(state.value,active.value.id);managementOpen.value=false;persist(null)}
-function beginFresh(){if(!active.value)return;active.value.characters=selected.value.map((key)=>{const d=INITIAL_CHARACTERS[key as keyof typeof INITIAL_CHARACTERS];return{id:key,name:d.name,level:1,invested:{...d.defaults},points:3,tracked:true,revealed:true};});active.value.nextRevealIndex=0;active.value.revision++;persist(null)}
+function manageSwitch(id0:string){if(!state.value)return;const before=snapshot();state.value=switchPlaythrough(state.value,id0);setupCharacter.value=null;revealStage.value=null;revealedCandidate.value=null;addingCandidate.value=false;freshSetup.value=false;managementOpen.value=false;if(!persist(before))managementOpen.value=true}
+function manageCreate(){if(!state.value||!newSelected.value.length)return;const before=snapshot();const chars=newSelected.value.map((key)=>{const d=INITIAL_CHARACTERS[key as keyof typeof INITIAL_CHARACTERS];return {id:key,name:d.name,level:1,invested:{...d.defaults},points:3,tracked:true,revealed:true}});state.value=createPlaythrough(state.value,newName.value,chars);newName.value="";managementOpen.value=false;if(!persist(before))managementOpen.value=true}
+function manageRemove(c:Character){if(!state.value||!active.value)return;const before=snapshot();const next=removeCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p)=>p.id===next.id?next:p);persist(before)}
+function manageRestore(c:Character){if(!state.value||!active.value)return;const before=snapshot();const next=restoreCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p)=>p.id===next.id?next:p);managementOpen.value=false;if(!persist(before))managementOpen.value=true}
+function manageReset(){if(!state.value||!active.value)return;const before=snapshot();state.value=resetPlaythrough(state.value,active.value.id);managementOpen.value=false;if(!persist(before))managementOpen.value=true}
+function beginFreshSetup(){
+  if (!active.value) return;
+  freshSetup.value = true;
+  setupName.value = active.value.name;
+  selected.value = ["gustave", "lune"];
+}
 const snapshot = () =>
   state.value ? (JSON.parse(JSON.stringify(state.value)) as SaveData) : null;
 function persist(before: SaveData | null) {
@@ -101,14 +107,32 @@ function start(
         revealed: true,
       };
     });
-    const p: Playthrough = {
-      id: id("playthrough"),
-      name: setupName.value.trim() || "My Expedition",
-      characters,
-      nextRevealIndex: 0,
-      revision: 0,
-    };
-    state.value = { version: 1, playthroughs: [p], activeId: p.id };
+    if (state.value && active.value && freshSetup.value) {
+      const current = active.value;
+      const updated: Playthrough = {
+        ...current,
+        name: setupName.value.trim() || current.name,
+        characters,
+        nextRevealIndex: 0,
+        revision: current.revision + 1,
+      };
+      state.value = {
+        ...state.value,
+        playthroughs: state.value.playthroughs.map((p) =>
+          p.id === current.id ? updated : p,
+        ),
+      };
+      freshSetup.value = false;
+    } else {
+      const p: Playthrough = {
+        id: id("playthrough"),
+        name: setupName.value.trim() || "My Expedition",
+        characters,
+        nextRevealIndex: 0,
+        revision: 0,
+      };
+      state.value = { version: 1, playthroughs: [p], activeId: p.id };
+    }
     persist(before);
   } catch (e) {
     saveError.value =
@@ -123,6 +147,14 @@ function beginSetup(c: Character) {
     points: c.points,
     invested: { ...c.invested },
   };
+}
+function cancelSetup() {
+  setupCharacter.value = null;
+  formError.value = "";
+  if (addingCandidate.value) {
+    addingCandidate.value = false;
+    revealedCandidate.value = null;
+  }
 }
 function submitProgress() {
   if (!active.value || !setupCharacter.value) return;
@@ -160,6 +192,11 @@ function updateGuidance(c: Character) {
   if (index < 0) return;
   active.value.characters[index] = c;
   active.value.revision++;
+  persist(before);
+}
+function dismiss(c: Character) {
+  const before = snapshot();
+  c.pending = undefined;
   persist(before);
 }
 function confirm(c: Character) {
@@ -218,20 +255,24 @@ function cancelReveal() {
         step.
       </p>
     </header>
+    <nav v-if="active" class="bar">
+      <strong>{{ active.name }}</strong><span aria-live="polite">{{ notice }}</span>
+      <button class="link" @click="managementOpen=true">Playthrough menu</button>
+    </nav>
     <SetupPanel
-      v-if="!state"
+      v-if="!state || (active && active.characters.length === 0 && freshSetup)"
       v-model:name="setupName"
       :selected="selected"
       :disabled="unreadableSave || !!saveError"
       @update:selected="selected = $event"
       @start="start"
-    /><template v-else-if="active"
-      ><nav class="bar">
-        <strong>{{ active.name }}</strong
-        ><span aria-live="polite">{{ notice }}</span>
-        <button class="link" @click="managementOpen=true">Playthrough menu</button>
-      </nav>
-      <section v-if="active.characters.length===0" class="card empty"><h2>Start this playthrough again</h2><p>Choose the initial party to begin recording this run.</p><button class="primary" @click="beginFresh">Begin fresh setup</button></section><section v-else class="party">
+    /><section v-else-if="active && active.characters.length === 0" class="card setup-empty">
+      <h2>Start this playthrough again</h2>
+      <p>This playthrough has been reset. Begin fresh setup when you are ready.</p>
+      <button class="primary" @click="beginFreshSetup">Begin fresh setup</button>
+    </section><template v-else-if="active && active.characters.length > 0"
+      >
+      <section class="party">
         <CharacterCard
           v-for="c in active.characters.filter((x) => x.tracked)"
           :key="c.id"
@@ -239,6 +280,7 @@ function cancelReveal() {
           @update="beginSetup"
           @advise="advise"
           @confirm="confirm"
+          @dismiss="dismiss"
           @remove="manageRemove"
         />
         <SkillPanel v-for="c in active.characters.filter((x) => x.tracked)" :key="`guidance-${active.id}-${c.id}`" :character="c" @update="updateGuidance" />
@@ -259,7 +301,7 @@ function cancelReveal() {
         old advice.
       </p>
       <p v-if="formError" class="error" role="alert">{{ formError }}</p>
-      <form @submit.prevent="submitProgress">
+      <form novalidate @submit.prevent="submitProgress">
         <label
           >Current level<input
             type="number"
@@ -283,7 +325,7 @@ function cancelReveal() {
           /></label>
         </div>
         <div class="actions">
-          <button type="button" @click="setupCharacter = null">Cancel</button
+          <button type="button" @click="cancelSetup">Cancel</button
           ><button class="primary">Save progress</button>
         </div>
       </form></FocusDialog
