@@ -251,18 +251,17 @@ function cancelReveal() {
 </script>
 <template>
   <main class="shell">
-    <p v-if="saveError" class="error" role="alert">{{ saveError }}</p>
-    <header>
-      <p class="eyebrow">EXPEDITION 33 · FIELD GUIDE</p>
-      <h1>Keep your build on course.</h1>
-      <p class="lede">
-        A quiet companion for recording real progress and choosing the next safe
-        step.
-      </p>
-    </header>
-    <nav v-if="active" class="bar">
-      <strong>{{ active.name }}</strong><span aria-live="polite">{{ notice }}</span>
-      <button class="link" @click="managementOpen=true">Playthrough menu</button>
+    <p v-if="saveError" class="error notice-banner" role="alert">{{ saveError }}</p>
+    <h1 class="sr-only">Expedition 33 leveling guide</h1>
+    <nav v-if="active" class="bar" aria-label="Current playthrough">
+      <div class="bar-leading">
+        <span class="bar-kicker">ACTIVE PLAYTHROUGH</span>
+        <strong>{{ active.name }}</strong>
+      </div>
+      <div class="bar-actions">
+        <span class="save-state" aria-live="polite"><i aria-hidden="true"></i>{{ notice || 'Local save active' }}</span>
+        <button class="link" aria-label="Playthrough menu" @click="managementOpen=true">Manage <span aria-hidden="true">↗</span></button>
+      </div>
     </nav>
     <SetupPanel
       v-if="!state || (active && active.characters.length === 0 && freshSetup)"
@@ -271,26 +270,26 @@ function cancelReveal() {
       :disabled="unreadableSave || !!saveError"
       @update:selected="selected = $event"
       @start="start"
-    /><section v-else-if="active && active.characters.length === 0" class="card setup-empty">
+    /><section v-else-if="active && active.characters.length === 0" class="setup-empty">
       <h2>Start this playthrough again</h2>
       <p>This playthrough has been reset. Begin fresh setup when you are ready.</p>
       <button class="primary" @click="beginFreshSetup">Begin fresh setup</button>
     </section><template v-else-if="active && active.characters.length > 0"
       >
       <section class="party">
-        <CharacterCard
-          v-for="c in active.characters.filter((x) => x.tracked)"
-          :key="c.id"
-          :character="c"
-          @update="beginSetup"
-          @advise="advise"
-          @confirm="confirm"
-          @dismiss="dismiss"
-          @remove="manageRemove"
-        />
-        <SkillPanel v-for="c in active.characters.filter((x) => x.tracked)" :key="`guidance-${active.id}-${c.id}`" :character="c" @update="updateGuidance" />
+        <div v-for="c in active.characters.filter((x) => x.tracked)" :key="c.id" class="character-lane">
+          <CharacterCard
+            :character="c"
+            @update="beginSetup"
+            @advise="advise"
+            @confirm="confirm"
+            @dismiss="dismiss"
+            @remove="manageRemove"
+          />
+          <SkillPanel :character="c" @update="updateGuidance" />
+        </div>
       </section>
-      <button class="add" @click="openReveal">＋ Add a character</button>
+      <button class="add" @click="openReveal"><span aria-hidden="true">＋</span> Add a character</button>
       <p class="research">
         Guidance is based on recorded in-game progress. Initial defaults and
         priorities are kept with the guide's research notes; recommendations are
@@ -368,4 +367,107 @@ function cancelReveal() {
     <FocusDialog v-if="managementOpen" title="Playthroughs" @close="managementOpen=false"><label>New playthrough name<input v-model="newName" aria-label="New playthrough name"></label><fieldset><legend>Initial characters for the new run</legend><label v-for="(d,key) in INITIAL_CHARACTERS" :key="key" class="check"><input type="checkbox" v-model="newSelected" :value="key"> {{d.name}}</label></fieldset><button class="primary" @click="manageCreate">Create independent playthrough</button><div class="run-list"><button v-for="p in state?.playthroughs" :key="p.id" @click="manageSwitch(p.id)">{{p.name}}</button></div><div v-if="removed.length"><button v-for="c in removed" :key="c.id" @click="manageRestore(c)">Restore {{c.name}}</button></div><button class="danger" @click="manageReset">Reset this playthrough</button></FocusDialog>
   </main>
 </template>
-<style>.shell{max-width:960px;margin:auto;padding:48px 22px 80px;color:#f6f1e8;background:#171717;min-height:100vh}.shell h1{font-size:clamp(2rem,5vw,3.8rem);line-height:1.05;margin:0 0 12px}.shell h2{font-size:1.5rem;line-height:1.2;margin:0 0 10px}.shell h3{font-size:1.1rem;line-height:1.25;margin:20px 0 8px}.card{background:#242322;border:1px solid #514942;border-radius:18px;padding:24px}.party{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.modal-backdrop{position:fixed;inset:0;background:#000b;display:grid;place-items:center;padding:18px;z-index:2}.modal{background:#242322;border:1px solid #776452;border-radius:18px;padding:26px;max-width:520px;width:100%}.error{color:#ffb4a8}button{padding:10px 14px;background:#f0e6d8;color:#171717;border:1px solid #bda98d;border-radius:7px;cursor:pointer}.button:disabled,button:disabled{opacity:.5;cursor:not-allowed}.primary{background:#c77f4e;color:#1b1410;border-color:#d99a6c}.add{display:block;width:100%;margin:22px 0;padding:16px}label{display:grid;gap:7px;margin:16px 0}input{padding:10px;width:100%;box-sizing:border-box}.edit-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:18px 0}.stats div{min-width:0;background:#171717;border:1px solid #514942;padding:10px;text-align:center}.stats span,.stats b{display:block}.stats span{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:#c8b9aa}.stats b{font-size:1.35rem;margin-top:4px}.card-head{display:flex;align-items:start;justify-content:space-between}.level,.points{color:#d9b18d}.eyebrow{font-size:.72rem;letter-spacing:.12em;color:#d9b18d}.lede,.research{color:#c8b9aa}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}.check{display:flex;align-items:start;gap:8px}.check input{width:auto}.setup fieldset{border:1px solid #514942;padding:12px 18px}.setup small{display:block;color:#c8b9aa}.advice{border-left:3px solid #c77f4e;padding-left:12px}.modal input,.modal button{color:#fff;background:#171717;border:1px solid #88705d}.modal .primary{background:#c77f4e;color:#1b1410}@media (max-width:500px){.shell{padding:32px 14px 60px}.card{padding:18px}.party{grid-template-columns:minmax(0,1fr)}.stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.stats div{padding:8px 4px}.stats span{font-size:.62rem}.stats b{font-size:1.15rem}.edit-grid{grid-template-columns:1fr}}</style>
+<style>
+:root { color-scheme: dark; --ink:#151716; --ink-raised:#1d211f; --ink-soft:#252a27; --paper:#f0eadf; --paper-ink:#282b27; --line:#46504a; --line-light:#cfc3b2; --muted:#b7b3a8; --rust:#c46b45; --rust-dark:#8f422c; --moss:#8da17d; --danger:#efaa99; --display:Georgia,'Times New Roman',serif; --body:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; --mono:'SFMono-Regular',Consolas,'Liberation Mono',monospace; }
+*,*::before { box-sizing:border-box; }
+html,body { min-width:320px; margin:0; background:var(--ink); color:var(--paper); }
+body { font-family:var(--body); }
+button,input,select { font:inherit; }
+button { cursor:pointer; }
+button:focus-visible,input:focus-visible,select:focus-visible { outline:2px solid var(--moss); outline-offset:3px; }
+button:disabled { cursor:not-allowed; opacity:.5; }
+.shell { width:min(100%,1360px); min-height:100svh; margin:auto; padding:clamp(28px,5vw,72px) clamp(18px,6vw,90px) 84px; background:var(--ink); }
+.shell h1,.shell h2,.shell h3,.shell p { margin-top:0; }
+.shell h1 { margin-bottom:18px; font-family:var(--display); font-size:clamp(3rem,7vw,6.8rem); font-weight:400; letter-spacing:-.055em; line-height:.88; }
+.shell h1 em { color:var(--rust); font-style:italic; }
+.shell h2 { font-family:var(--display); font-size:clamp(1.65rem,3vw,2.6rem); font-weight:400; letter-spacing:-.035em; line-height:1; }
+.shell h3 { font-family:var(--display); font-size:1.35rem; font-weight:400; letter-spacing:-.02em; line-height:1.1; }
+.eyebrow,.bar-kicker { font-family:var(--mono); text-transform:uppercase; letter-spacing:.12em; }
+.eyebrow { margin:0; color:var(--paper); font-size:.7rem; }
+.notice-banner { margin:0 0 22px; padding:12px 14px; border:1px solid var(--rust); color:var(--danger); font-size:.85rem; }
+.error { color:var(--danger); }
+.bar { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:22px 0 18px; border-bottom:1px solid var(--line); }
+.bar-leading { display:flex; align-items:baseline; gap:14px; min-width:0; }
+.bar-kicker { color:var(--muted); font-size:.58rem; white-space:nowrap; }
+.bar strong { overflow:hidden; color:var(--paper); font-family:var(--display); font-size:1.2rem; font-weight:400; text-overflow:ellipsis; white-space:nowrap; }
+.bar-actions { display:flex; align-items:center; gap:22px; }
+.save-state { display:flex; align-items:center; gap:8px; color:var(--moss); font-family:var(--mono); font-size:.62rem; letter-spacing:.08em; text-transform:uppercase; white-space:nowrap; }
+.save-state i { width:6px; height:6px; border-radius:50%; background:var(--moss); }
+.link { padding:4px 0; border:0; border-bottom:1px solid var(--rust); background:transparent; color:var(--paper); font-size:.8rem; }
+.link:hover { color:var(--rust); }
+.setup-panel { display:grid; grid-template-columns:minmax(180px,.75fr) minmax(320px,1.25fr); gap:clamp(26px,6vw,88px); margin-top:38px; padding:clamp(24px,4vw,48px); background:var(--paper); color:var(--paper-ink); }
+.setup-intro h2 { max-width:240px; }
+.setup-intro>p { max-width:260px; color:#6a665d; font-size:.92rem; line-height:1.55; }
+.setup-form { min-width:0; }
+.setup-panel label { display:grid; gap:8px; margin:0 0 22px; font-size:.82rem; }
+.setup-panel>.setup-form>label:first-child { font-family:var(--mono); font-size:.65rem; letter-spacing:.08em; text-transform:uppercase; }
+.setup-panel input:not([type='checkbox']) { width:100%; padding:12px 0; border:0; border-bottom:1px solid #a99d8a; border-radius:0; background:transparent; color:var(--paper-ink); font-family:var(--display); font-size:1.4rem; outline:none; }
+.setup-panel input:not([type='checkbox']):focus { border-color:var(--rust-dark); }
+.character-picker { margin:26px 0; padding:0; border:0; }
+.character-picker legend { width:100%; margin-bottom:10px; padding:0 0 10px; border-bottom:1px solid var(--line-light); font-family:var(--mono); font-size:.65rem; letter-spacing:.08em; text-transform:uppercase; }
+.character-option { position:relative; display:flex!important; align-items:center; gap:12px; min-height:58px; margin:0!important; padding:10px 0; border-bottom:1px solid var(--line-light); cursor:pointer; }
+.character-option input[type='checkbox'],.midway-check input[type='checkbox'] { position:absolute; width:1px; height:1px; opacity:0; }
+.option-mark { display:grid; place-items:center; width:18px; height:18px; border:1px solid #8b8172; color:transparent; font-size:.75rem; }
+.character-option:has(input:checked) .option-mark { border-color:var(--rust-dark); background:var(--rust); color:var(--paper); }
+.option-copy { display:grid; gap:3px; }
+.option-copy strong { font-family:var(--display); font-size:1.08rem; font-weight:400; }
+.option-copy small { color:#777166; font-size:.7rem; }
+.midway-check { position:relative; display:flex!important; align-items:center; gap:10px; margin-top:24px!important; color:#625e55; cursor:pointer; }
+.midway-check .option-mark { width:15px; height:15px; }
+.midway-check:has(input:checked) .option-mark { border-color:var(--moss); background:var(--moss); }
+.primary,button { min-height:42px; padding:10px 14px; border:1px solid var(--line); border-radius:0; background:transparent; color:var(--paper); font-size:.78rem; }
+.primary { border-color:var(--rust); background:var(--rust); color:#1b1714; }
+.primary:hover { background:#d8835b; }
+.setup-panel .primary { margin-top:10px; border-color:var(--rust-dark); background:var(--rust-dark); color:var(--paper); }
+.setup-panel .primary:hover { background:#733222; }
+.setup-empty { margin-top:38px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+.setup-empty p { color:var(--muted); }
+.party { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:56px 26px; margin-top:42px; }
+.character-lane { min-width:0; }
+.card { padding:26px; border:1px solid var(--line); border-radius:0; background:var(--ink-raised); }
+.character { border-top:3px solid var(--rust); }
+.card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.card-head .eyebrow { margin-bottom:12px; color:var(--moss); }
+.card-head h2 { margin-bottom:0; }
+.level { display:grid; gap:2px; justify-items:end; color:var(--rust); font-family:var(--mono); font-size:.64rem; letter-spacing:.1em; text-transform:uppercase; }
+.level::after { content:'CURRENT'; color:var(--muted); font-size:.5rem; }
+.stats { display:grid; gap:0; margin:28px 0 20px; border-top:1px solid var(--line); }
+.stats div { display:grid; grid-template-columns:1fr 1.8fr auto; align-items:center; gap:10px; min-width:0; padding:8px 0; border-bottom:1px solid var(--line); }
+.stats span { color:var(--muted); font-family:var(--mono); font-size:.62rem; letter-spacing:.07em; text-transform:uppercase; }
+.stats div>span:nth-child(2) { height:1px; background:var(--line); }
+.stats b { color:var(--paper); font-family:var(--display); font-size:1.15rem; font-weight:400; }
+.points { margin:0; color:var(--moss); font-family:var(--mono); font-size:.65rem; letter-spacing:.04em; text-transform:uppercase; }
+.actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+.actions button { font-size:.72rem; }
+.quiet { border-color:transparent; color:var(--muted); }
+.quiet:hover { color:var(--danger); }
+.advice { margin:22px 0 0; padding:13px 14px; border-left:2px solid var(--rust); background:var(--ink-soft); color:var(--paper); font-size:.82rem; line-height:1.5; }
+.advice strong { color:var(--rust); font-family:var(--mono); font-size:.63rem; letter-spacing:.08em; text-transform:uppercase; }
+.advice small { color:var(--muted); }
+.guidance-tools { margin-top:12px; background:transparent; }
+.guidance-head { display:flex; align-items:baseline; justify-content:space-between; gap:14px; padding-bottom:12px; border-bottom:1px solid var(--line); }
+.guidance-head .eyebrow { margin-bottom:8px; color:var(--muted); }
+.guidance-head h3 { margin-bottom:0; }
+.guidance-actions { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0; }
+.guidance-actions button { min-height:34px; padding:7px 10px; color:var(--muted); font-size:.68rem; }
+.guidance-actions button:hover { border-color:var(--rust); color:var(--paper); }
+.guidance-tools p { margin:12px 0; overflow-wrap:anywhere; color:var(--muted); font-size:.78rem; line-height:1.5; }
+.guidance-tools p button { margin-left:8px; min-height:31px; padding:6px 9px; }
+.add { display:block; width:100%; margin:46px 0 20px; border:1px dashed var(--line); color:var(--muted); }
+.add:hover { border-color:var(--rust); color:var(--paper); }
+.add span { color:var(--rust); }
+.research { max-width:680px; margin:0; color:#858b83; font-size:.75rem; line-height:1.55; }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
+.modal-backdrop { position:fixed; inset:0; z-index:2; display:grid; place-items:center; padding:18px; background:rgba(10,12,11,.84); }
+.modal { width:min(100%,560px); max-height:calc(100dvh - 36px); overflow:auto; padding:clamp(22px,4vw,38px); border:1px solid var(--rust); border-radius:0; background:var(--ink-raised); color:var(--paper); }
+.modal h2 { padding-bottom:16px; border-bottom:1px solid var(--line); }
+.modal p { color:var(--muted); font-size:.88rem; line-height:1.55; }
+.modal label { display:grid; gap:8px; margin:16px 0; color:var(--paper); font-size:.82rem; }
+.modal input,.modal select { width:100%; padding:10px; border:1px solid var(--line); border-radius:0; background:var(--ink); color:var(--paper); }
+.modal fieldset { margin:22px 0; padding:14px; border:1px solid var(--line); }
+.modal legend { padding:0 6px; color:var(--moss); font-family:var(--mono); font-size:.63rem; letter-spacing:.08em; text-transform:uppercase; }
+.modal .actions { border-top:1px solid var(--line); padding-top:18px; }
+.danger { border-color:var(--danger); color:var(--danger); }
+@media (max-width:680px) { .shell { padding:24px 16px 58px; } .bar { display:block; } .bar-actions { justify-content:space-between; margin-top:12px; } .setup-panel { display:block; margin-top:28px; padding:24px 18px; } .party { grid-template-columns:1fr; gap:40px; margin-top:30px; } .card { padding:20px 18px; } .stats div { grid-template-columns:1fr 1.2fr auto; } .guidance-actions { display:grid; grid-template-columns:1fr 1fr; } .guidance-actions button { width:100%; } }
+@media (max-width:420px) { .shell h1 { font-size:3.5rem; } .bar-leading { display:block; } .bar-leading strong { display:block; margin-top:5px; } .bar-actions { display:flex; gap:10px; } .save-state { font-size:.56rem; } .guidance-actions { grid-template-columns:1fr; } }
+</style>

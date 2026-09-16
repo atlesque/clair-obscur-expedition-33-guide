@@ -17,4 +17,4 @@ onMounted(async () => { previous = document.activeElement as HTMLElement; docume
 onUnmounted(() => { window.removeEventListener('keydown', keydown); document.querySelector('main')?.removeAttribute('inert'); previous?.focus(); });
 </script>
 <template><Teleport to="body"><div class="modal-backdrop"><section ref="root" class="modal" role="dialog" aria-modal="true" :aria-label="props.title"><h2>{{ props.title }}</h2><slot /><div class="actions"><slot name="actions" /></div></section></div></Teleport></template>
-<style>.modal{color:#f6f1e8;max-height:calc(100dvh - 36px);overflow:auto;box-sizing:border-box}.modal input,.modal button{color:#fff;background:#171717;border:1px solid #88705d}.modal .primary{background:#c77f4e;color:#1b1410}</style>
+<style>.modal{color:var(--paper,#f0eadf);max-height:calc(100dvh - 36px);overflow:auto;box-sizing:border-box}.modal input,.modal select{color:var(--paper,#f0eadf);background:var(--ink,#151716);border:1px solid var(--line,#46504a)}.modal button{color:var(--paper,#f0eadf);background:transparent;border:1px solid var(--line,#46504a)}.modal .primary{background:var(--rust,#c46b45);color:#1b1714}</style>
