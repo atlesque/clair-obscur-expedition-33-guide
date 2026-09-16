@@ -51,6 +51,22 @@ data-driven and only expose skills whose visibility and prerequisites have been
 verified. Unknown or story-dependent skills stay unavailable until the user
 records their discovery.
 
+For the initial skill data, the cross-checked tables are [Gamer Guides' Gustave
+database](https://www.gamerguides.com/clair-obscur-expedition-33/database/skills/gustave),
+[Gamer Guides' Lune database](https://www.gamerguides.com/clair-obscur-expedition-33/database/skills/lune),
+and the [Gustave page on the community wiki](https://clairobscur.wiki.gg/wiki/Gustave).
+The tables distinguish action-point cost from skill-point unlock cost. The app
+stores only the latter, and uses the reported visible starting skills as the
+initial ownership boundary. Some pages expose a larger late-game table without
+reliably stating story gates; those entries are omitted until the discovery
+boundary is verified rather than shown prematurely.
+
+The final recruit's skill system is a separate acquisition path: skills are
+learned from confirmed encounters rather than purchased from the ordinary
+skill-point tree. The model marks that path explicitly, so setup can record
+owned skills while purchase advice remains withheld. Loadout suggestions are
+always filtered to recorded ownership and capped at six slots.
+
 ## Editorial recommendation boundary
 
 The forgiving build uses survivability and reliable damage as the baseline. A

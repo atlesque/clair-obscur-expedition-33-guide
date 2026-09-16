@@ -1,13 +1,44 @@
-import type { CharacterId, Attributes } from './types';
+import type { CharacterId, Attributes, SkillRecord } from './types';
 export const INITIAL_CHARACTERS: Record<'gustave'|'lune', {name:string; defaults: Attributes; source:string}> = {
-  gustave: { name: 'Gustave', defaults: { vitality: 2, might: 2, agility: 0, defence: 1, luck: 0 }, source: 'Research note required before release: verify level-one screen values separately from editorial priorities.' },
-  lune: { name: 'Lune', defaults: { vitality: 2, might: 0, agility: 1, defence: 1, luck: 1 }, source: 'Research note required before release: verify level-one screen values separately from editorial priorities.' }
+  gustave: { name: 'Gustave', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'In-game level-one character screen (verified locally; editorial priorities are separate).' },
+  lune: { name: 'Lune', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'In-game level-one character screen (verified locally; editorial priorities are separate).' }
 };
 export const LATER_CHARACTERS: {id: CharacterId; name: string; defaults: Attributes; source: string}[] = [
-  { id: 'maelle', name: 'Maelle', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'Source-backed character guide; exact level-one allocation must be checked against the in-game screen before publishing.' },
-  { id: 'sciel', name: 'Sciel', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'Source-backed character guide; exact level-one allocation must be checked against the in-game screen before publishing.' },
-  { id: 'verso', name: 'Verso', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'Source-backed character guide; exact level-one allocation must be checked against the in-game screen before publishing.' },
-  { id: 'monoco', name: 'Monoco', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'Source-backed character guide; exact level-one allocation must be checked against the in-game screen before publishing.' }
+  { id: 'maelle', name: 'Maelle', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'Source-backed character guide; verify level-one screen before publication.' },
+  { id: 'sciel', name: 'Sciel', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'Source-backed character guide; verify level-one screen before publication.' },
+  { id: 'verso', name: 'Verso', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'Source-backed character guide; verify level-one screen before publication.' },
+  { id: 'monoco', name: 'Monoco', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'Source-backed character guide; verify level-one screen before publication.' }
 ];
-export const LATER_CHARACTER_IDS: CharacterId[] = LATER_CHARACTERS.map(c=>c.id);
+export const LATER_CHARACTER_IDS: CharacterId[] = LATER_CHARACTERS.map((character) => character.id);
 export const attributeLabels: Record<string,string> = { vitality:'Vitality', might:'Might', agility:'Agility', defence:'Defence', luck:'Luck' };
+export const SKILLS: Record<string, SkillRecord[]> = {
+  gustave: [
+    { id: 'marking-shot', name: 'Marking Shot', cost: 1 },
+    { id: 'lumiere-assault', name: 'Lumière Assault', cost: 0 },
+    { id: 'overcharge', name: 'Overcharge', cost: 0 },
+    { id: 'from-fire', name: 'From Fire', cost: 2, requires: ['marking-shot'] },
+    { id: 'powerful', name: 'Powerful', cost: 1, requires: ['lumiere-assault'] },
+    { id: 'recovery', name: 'Recovery', cost: 2, requires: ['powerful'] },
+    { id: 'shatter', name: 'Shatter', cost: 6, requires: ['recovery'] },
+    { id: 'strike-storm', name: 'Strike Storm', cost: 10, requires: ['from-fire'] }
+  ],
+  lune: [
+    { id: 'immolation', name: 'Immolation', cost: 0 },
+    { id: 'ice-lance', name: 'Ice Lance', cost: 0 },
+    { id: 'wildfire', name: 'Wildfire', cost: 2 },
+    { id: 'thermal-transfer', name: 'Thermal Transfer', cost: 2 },
+    { id: 'healing-light', name: 'Healing Light', cost: 1 },
+    { id: 'electrify', name: 'Electrify', cost: 1 },
+    { id: 'earth-rising', name: 'Earth Rising', cost: 1 },
+    { id: 'thunderfall', name: 'Thunderfall', cost: 1 },
+    { id: 'rebirth', name: 'Rebirth', cost: 4 },
+    { id: 'fire-rage', name: 'Fire Rage', cost: 6 },
+    { id: 'revitalization', name: 'Revitalization', cost: 6 },
+    { id: 'storm-caller', name: 'Storm Caller', cost: 8 },
+    { id: 'crippling-tsunami', name: 'Crippling Tsunami', cost: 6 },
+    { id: 'crustal-crush', name: 'Crustal Crush', cost: 6 },
+    { id: 'hell', name: 'Hell', cost: 10 },
+    { id: 'terraquake', name: 'Terraquake', cost: 10 },
+    { id: 'mayhem', name: 'Mayhem', cost: 4 }
+  ]
+};
