@@ -45,27 +45,30 @@ Sources checked:
 - [Gamer Guides — Using and farming Recoats](https://www.gamerguides.com/clair-obscur-expedition-33/guide/getting-started/gameplay/using-farming-recoats)
 - [Meristation — review and systems overview](https://as.com/meristation/reportajes/lo-que-el-rol-moderno-puede-aprender-de-clair-obscur-expedition-33-f202511-r/)
 
-The sources do not provide a dependable, complete, spoiler-safe table of every
-skill prerequisite or every story-gated skill. Skill guidance must therefore be
-data-driven and only expose skills whose visibility and prerequisites have been
-verified. Unknown or story-dependent skills stay unavailable until the user
-records their discovery.
+The maintained ordinary skill catalog is `src/domain/skills-catalog.json`.
+Costs are skill-point unlock costs, not action-point costs. Prerequisites use
+single edges or OR groups as documented by the [community skill table](https://clair-obscur.fandom.com/wiki/Skills).
+Individual pages cross-check ambiguous entries, including [Thermal Transfer](https://clair-obscur.fandom.com/wiki/Thermal_Transfer),
+[Hell](https://clair-obscur.fandom.com/wiki/Hell), [Thunderfall](https://clair-obscur.fandom.com/wiki/Thunderfall),
+and the relevant character-specific skill pages linked from the table.
+Every prerequisite identifier resolves within its own character catalog. These
+are community-source facts, not a claim that every skill was personally tested
+in-game. Gradient abilities use a separate combat system and are outside this
+ordinary equipped-skill catalog.
 
-For the initial skill data, the cross-checked tables are [Gamer Guides' Gustave
-database](https://www.gamerguides.com/clair-obscur-expedition-33/database/skills/gustave),
-[Gamer Guides' Lune database](https://www.gamerguides.com/clair-obscur-expedition-33/database/skills/lune),
-and the [Gustave page on the community wiki](https://clairobscur.wiki.gg/wiki/Gustave).
-The tables distinguish action-point cost from skill-point unlock cost. The app
-stores only the latter, and uses the reported visible starting skills as the
-initial ownership boundary. Some pages expose a larger late-game table without
-reliably stating story gates; those entries are omitted until the discovery
-boundary is verified rather than shown prematurely.
+Story-dependent ordinary skills are marked with an explicit discovery gate.
+The confirmation is anonymous until the player consents to seeing additional
+skill names; discovery does not imply ownership or spend points. Story-granted
+skills cannot be recommended as point purchases.
 
-The final recruit's skill system is a separate acquisition path: skills are
-learned from confirmed encounters rather than purchased from the ordinary
-skill-point tree. The model marks that path explicitly, so setup can record
-owned skills while purchase advice remains withheld. Loadout suggestions are
-always filtered to recorded ownership and capped at six slots.
+One character learns skills from encounters while present in the active party,
+rather than purchasing them with skill points. That workflow accepts only the
+names the player enters as already learned, and never exposes a future enemy
+catalog. The source is the acquisition explanation in the community skill
+table; [Gamer Guides' skill-acquisition reference](https://www.gamerguides.com/clair-obscur-expedition-33/guide/characters/playable/all-monoco-skill-locations)
+corroborates the distinct mechanic. Manual learned names are user assertions;
+the guide cannot verify a game save. Suggestions are limited to six recorded
+owned skills, and recording a loadout spends no points.
 
 ## Editorial recommendation boundary
 
@@ -75,3 +78,15 @@ the next legal investments; the advice remains a recommendation, not an
 optimizer or a claim of a universally best build. Existing investments are
 never rewritten, and clearing or changing scaling invalidates pending advice
 without changing actual progression.
+
+The skill catalog order is an editorial preference for accessible early utility,
+healing, protection, and damage coverage. Recommendations take the first legal,
+affordable unowned entry. Loadout suggestions use that order among recorded
+owned and discovered skills. For manually entered learned skills, the player's
+entry order is retained; the app does not claim to optimize unknown names.
+
+Attribute priorities remain proportional during catch-up. Existing investments
+are included in the target deficit, so overinvested attributes receive fewer
+new points. Entered scaling grades add increasing editorial weight before
+normalization; the coefficient is a recommendation heuristic, not a game damage
+multiplier. Caps and actual point balances always take precedence.

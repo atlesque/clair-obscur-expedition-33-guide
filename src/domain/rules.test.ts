@@ -48,7 +48,7 @@ describe('public progression guidance', () => {
     expect(recommendSkill(current)?.save).toBe(true);
   });
 
-  it('withholds later purchases whose prerequisite evidence is incomplete', () => {
+  it('withholds later purchases when no prerequisites are owned', () => {
     const current = character({ id: 'verso', skillSetupComplete: true, skillPoints: 10, unlockedSkills: [] });
     expect(recommendSkill(current)?.save).toBe(true);
   });
@@ -57,5 +57,26 @@ describe('public progression guidance', () => {
     const base = character({ id: 'lune', skillSetupComplete: true, skillPoints: 4, unlockedSkills: ['wildfire','thermal-transfer','healing-light','electrify','earth-rising','thunderfall','rebirth','fire-rage','revitalization','storm-caller','crippling-tsunami','crustal-crush','hell','terraquake','rockslide','lightning-dance'] });
     expect(recommendSkill(base)?.skillId).toBe('mayhem');
     expect(recommendSkill({ ...base, unlockedSkills: base.unlockedSkills!.filter((id) => id !== 'electrify' && id !== 'thermal-transfer') })?.skillId).not.toBe('mayhem');
+  });
+});
+
+
+describe('catch-up and visibility regressions', () => {
+  it('keeps a weighted forgiving build during large catch-up and adapts to existing investments', () => {
+    const general = recommend(character({ points: 100 }));
+    expect(general.points).toBe(100);
+    expect(general.spend.vitality).toBeGreaterThan(general.spend.luck!);
+    const scaled = recommend(character({ points: 100, weaponScaling: { luck: 'S' } }));
+    expect(scaled.spend.luck).toBeGreaterThan(general.spend.luck! + 20);
+    const invested = { vitality: 80, might: 0, agility: 0, defence: 0, luck: 0 };
+    const adapted = recommend(character({ points: 20, invested }));
+    expect(adapted.spend.vitality ?? 0).toBe(0);
+    expect(invested.vitality).toBe(80);
+    expect(adapted.points).toBe(20);
+  });
+  it('does not reintroduce hidden or unknown ordinary skills through the loadout fallback', () => {
+    const current = character({ id: 'maelle', skillSetupComplete: true, unlockedSkills: ['maelle-spark', 'maelle-burning-canvas', 'unknown'], discoveredSkillIds: [] });
+    expect(suggestLoadout(current)).toEqual(['maelle-spark']);
+    expect(suggestLoadout({ ...current, discoveredSkillIds: ['maelle-burning-canvas'] })).toEqual(['maelle-spark', 'maelle-burning-canvas']);
   });
 });
