@@ -289,7 +289,7 @@ function cancelReveal() {
     <FocusDialog
       v-if="setupCharacter"
       :title="`Update ${setupCharacter.name}`"
-      @close="setupCharacter = null"
+      @close="cancelSetup"
       ><p>
         Enter what is true in-game. This replaces the recorded inputs and clears
         old advice.
