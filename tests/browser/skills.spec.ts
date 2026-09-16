@@ -1,8 +1,13 @@
 import { test, expect, type Page } from '@playwright/test';
 
-const panel = (page: Page, index = 0) => page.locator('.guidance-tools').nth(index);
-const card = (page: Page, index = 0) => page.locator('.character').nth(index);
+const characterNames = ['Gustave', 'Lune', 'Maelle', 'Sciel', 'Verso', 'Monoco'];
+const panel = (page: Page, _index = 0) => page.locator('.guidance-tools').first();
+const card = (page: Page, _index = 0) => page.locator('.character').first();
+async function selectCharacter(page: Page, index: number) {
+  await page.getByRole('button', { name: `Show ${characterNames[index]}` }).click();
+}
 async function setup(page: Page, index = 0) {
+  await selectCharacter(page, index);
   await panel(page, index).getByRole('button', { name: 'Skill and weapon setup' }).click();
   return page.getByRole('dialog');
 }
@@ -110,10 +115,12 @@ test('later skills require deliberate discovery and stay scoped to their run', a
   await page.getByRole('button', { name: 'My Expedition', exact: true }).click();
   await expect(panel(page, 2)).toContainText('Swift Stride');
   await expect(panel(page, 2)).toContainText('0 SP');
-  await card(page, 2).getByRole('button', { name: 'Remove', exact: true }).click();
+  await card(page, 2).getByRole('button', { name: 'More character actions' }).click();
+  await page.getByRole('menuitem', { name: 'Remove character' }).click();
   await page.reload();
   await page.getByRole('button', { name: 'Playthrough menu' }).click();
   await page.getByRole('button', { name: 'Restore Maelle', exact: true }).click();
+  await selectCharacter(page, 2);
   await expect(panel(page, 2)).toContainText('Swift Stride');
   dialog = await setup(page, 2);
   await expect(dialog.getByLabel('Phantom Strike', { exact: true })).toBeVisible();
@@ -141,6 +148,7 @@ test('learned-acquisition guidance records only actual skills and never spends s
   await expect(panel(page, index).getByRole('button', { name: "I've applied this skill" })).toHaveCount(0);
   await panel(page, index).getByRole('button', { name: 'Record suggested loadout' }).click();
   await page.reload();
+  await selectCharacter(page, index);
   await expect(panel(page, index).getByText(/Recorded loadout:/)).toContainText('Lancelier Impale');
   await expect(panel(page, index).getByText(/Recorded loadout:/)).toContainText('Orphelin Cheers');
 });

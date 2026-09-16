@@ -94,7 +94,8 @@ test("isolates progressed runs through removal, reset, reload, and restoration",
     page.getByRole("button", { name: "Beta", exact: true }),
   ).toHaveCount(1);
   await page.getByRole("button", { name: "Alpha", exact: true }).click();
-  await page.getByRole("button", { name: "Remove" }).click();
+  await page.getByRole("button", { name: "More character actions" }).click();
+  await page.getByRole("menuitem", { name: "Remove character" }).click();
   await page.reload();
   await page
     .getByRole("button", { name: "Playthrough menu", exact: true })

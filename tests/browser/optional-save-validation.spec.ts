@@ -38,5 +38,7 @@ test('resumes older actual progress while dropping unverifiable pending advice',
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Gustave', exact: true })).toBeVisible();
   await expect(page.getByText('Pending recommendation', { exact: true })).toHaveCount(0);
-  await expect(page.getByText('3 attribute points available')).toHaveCount(2);
+  await expect(page.getByText('3 attribute points available')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Show Lune' }).click();
+  await expect(page.getByText('3 attribute points available')).toHaveCount(1);
 });
