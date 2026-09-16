@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import {
   INITIAL_CHARACTERS,
   LATER_CHARACTERS,
@@ -57,6 +57,15 @@ const tracked = computed(
 const removed = computed(
   () => active.value?.characters.filter((c) => !c.tracked) ?? [],
 );
+function closeDialogs(event: KeyboardEvent) {
+  if (event.key === "Escape") {
+    managementOpen.value = false;
+    revealStage.value = null;
+    setupCharacter.value = null;
+  }
+}
+onMounted(() => window.addEventListener("keydown", closeDialogs));
+onUnmounted(() => window.removeEventListener("keydown", closeDialogs));
 if (loaded.kind === "invalid") saveError.value = loaded.error;
 function persist() {
   if (!state.value) return;
