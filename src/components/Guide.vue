@@ -241,7 +241,7 @@ function cancelReveal() {
           @confirm="confirm"
           @remove="manageRemove"
         />
-        <SkillPanel v-for="c in active.characters.filter((x) => x.tracked)" :key="`guidance-${c.id}`" :character="c" @update="updateGuidance" />
+        <SkillPanel v-for="c in active.characters.filter((x) => x.tracked)" :key="`guidance-${active.id}-${c.id}`" :character="c" @update="updateGuidance" />
       </section>
       <button class="add" @click="openReveal">＋ Add a character</button>
       <p class="research">
