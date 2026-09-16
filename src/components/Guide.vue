@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { INITIAL_CHARACTERS, LATER_CHARACTER_IDS, attributeLabels } from '../domain/data';
+import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels } from '../domain/data';
 import { ATTRIBUTES, emptyAttributes } from '../domain/types';
 import type { Attributes, Character, Playthrough, SaveData } from '../domain/types';
 import { applyRecommendation, recommend, updateProgress } from '../domain/rules';
 import { id, load, save } from '../domain/storage';
 import { createPlaythrough, removeCharacter, resetPlaythrough, restoreCharacter, switchPlaythrough } from '../domain/playthroughs';
 
-const state = ref<SaveData | null>(typeof localStorage !== 'undefined' ? load() : null);
+const loaded = typeof localStorage !== 'undefined' ? load() : {kind:'missing' as const};
+const state = ref<SaveData | null>(loaded.kind === 'loaded' ? loaded.data : null);
 const setupName = ref('My Expedition'); const selected = ref<('gustave'|'lune')[]>(['gustave','lune']);
 const saveError = ref(''); const notice = ref(''); const managementOpen = ref(false); const newName = ref('');
 const revealStage = ref<'warning'|'identity'|'terminal'|null>(null); const setupCharacter = ref<Character | null>(null);
@@ -15,6 +16,7 @@ const draft = ref<{level:number; points:number; invested:Attributes}>({level:1, 
 const active = computed(() => state.value?.playthroughs.find((p) => p.id === state.value?.activeId) ?? null);
 const tracked = computed(() => active.value?.characters.filter((c) => c.tracked) ?? []);
 const removed = computed(() => active.value?.characters.filter((c) => !c.tracked) ?? []);
+if (loaded.kind === 'invalid') saveError.value = loaded.error;
 function persist() { if (!state.value) return; const result = save(state.value); saveError.value = result.error ?? ''; notice.value = result.ok ? 'Saved' : ''; }
 function initialCharacters() { return selected.value.map((characterId) => { const d = INITIAL_CHARACTERS[characterId]; return {id:characterId,name:d.name,level:1,invested:{...d.defaults},points:0,tracked:true,revealed:true}; }); }
 function start() { const p:Playthrough={id:id('playthrough'),name:setupName.value.trim()||'My Expedition',characters:initialCharacters(),nextRevealIndex:0,revision:0}; state.value={version:1,playthroughs:[p],activeId:p.id}; persist(); }
@@ -22,8 +24,8 @@ function beginSetup(c: Character) { setupCharacter.value=c; draft.value={level:c
 function submitProgress() { if (!active.value || !setupCharacter.value) return; const i=active.value.characters.findIndex((c)=>c.id===setupCharacter.value?.id); if(i<0)return; active.value.characters[i]=updateProgress(active.value.characters[i],draft.value); active.value.revision++; setupCharacter.value=null; persist(); }
 function advise(c: Character) { c.pending=recommend(c); persist(); }
 function confirm(c: Character) { if(!c.pending||!active.value)return; const changed=applyRecommendation(c,c.pending); if(changed!==c){Object.assign(c,changed);active.value.revision++;notice.value='Applied recommendation recorded once.';persist();}else notice.value='That advice is stale; update progress before applying it.'; }
-function openReveal(){revealStage.value='warning'} function consentReveal(){revealStage.value=active.value&&active.value.nextRevealIndex<LATER_CHARACTER_IDS.length?'identity':'terminal'} function cancelReveal(){revealStage.value=null}
-function addLater(){if(!active.value)return;const n=active.value.nextRevealIndex;if(n>=LATER_CHARACTER_IDS.length){revealStage.value=null;return}const c:Character={id:LATER_CHARACTER_IDS[n],name:`New character ${n+1}`,level:1,invested:emptyAttributes(),points:0,tracked:true,revealed:true};active.value.characters.push(c);active.value.nextRevealIndex++;active.value.revision++;revealStage.value=null;beginSetup(c);persist()}
+function openReveal(){revealStage.value='warning'} function consentReveal(){revealStage.value=active.value&&active.value.nextRevealIndex<LATER_CHARACTERS.length?'identity':'terminal'} function cancelReveal(){revealStage.value=null}
+function addLater(){if(!active.value)return;const n=active.value.nextRevealIndex;const candidate=LATER_CHARACTERS[n];if(!candidate){revealStage.value=null;return}const c:Character={id:candidate.id,name:candidate.name,level:1,invested:{...candidate.defaults},points:0,tracked:true,revealed:true};active.value.characters.push(c);active.value.nextRevealIndex++;active.value.revision++;revealStage.value=null;beginSetup(c);persist()}
 function hide(c:Character){if(!state.value||!active.value)return;const next=removeCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p)=>p.id===next.id?next:p);setupCharacter.value=null;persist()}
 function restore(c:Character){if(!state.value||!active.value)return;const next=restoreCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p)=>p.id===next.id?next:p);persist()}
 function resetSelected(){if(!state.value||!active.value)return;state.value=resetPlaythrough(state.value,active.value.id);setupCharacter.value=null;revealStage.value=null;managementOpen.value=false;persist()}
