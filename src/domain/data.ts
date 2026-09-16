@@ -14,8 +14,8 @@ export const attributeLabels: Record<string,string> = { vitality:'Vitality', mig
 export const SKILLS: Record<string, SkillRecord[]> = {
   gustave: [
     { id: 'marking-shot', name: 'Marking Shot', cost: 1 },
-    { id: 'lumiere-assault', name: 'Lumière Assault', cost: 0 },
-    { id: 'overcharge', name: 'Overcharge', cost: 0 },
+    { id: 'lumiere-assault', name: 'Lumière Assault', cost: 0, starting: true },
+    { id: 'overcharge', name: 'Overcharge', cost: 0, starting: true },
     { id: 'from-fire', name: 'From Fire', cost: 2, requires: ['marking-shot'] },
     { id: 'powerful', name: 'Powerful', cost: 1, requires: ['lumiere-assault'] },
     { id: 'recovery', name: 'Recovery', cost: 2, requires: ['powerful'] },
@@ -23,8 +23,8 @@ export const SKILLS: Record<string, SkillRecord[]> = {
     { id: 'strike-storm', name: 'Strike Storm', cost: 10, requires: ['from-fire'] }
   ],
   lune: [
-    { id: 'immolation', name: 'Immolation', cost: 0 },
-    { id: 'ice-lance', name: 'Ice Lance', cost: 0 },
+    { id: 'immolation', name: 'Immolation', cost: 0, starting: true },
+    { id: 'ice-lance', name: 'Ice Lance', cost: 0, starting: true },
     { id: 'wildfire', name: 'Wildfire', cost: 2 },
     { id: 'thermal-transfer', name: 'Thermal Transfer', cost: 2 },
     { id: 'healing-light', name: 'Healing Light', cost: 1 },
@@ -43,24 +43,24 @@ export const SKILLS: Record<string, SkillRecord[]> = {
   ],
   maelle: [
     { id: 'maelle-degagement', name: 'Degagement', cost: 2 },
-    { id: 'maelle-spark', name: 'Spark', cost: 1 },
-    { id: 'maelle-breaking-rules', name: 'Breaking Rules', cost: 4 },
-    { id: 'maelle-burning-canvas', name: 'Burning Canvas', cost: 6, storyGated: true },
-    { id: 'maelle-fleuret-fury', name: 'Fleuret Fury', cost: 2 }
+    { id: 'maelle-spark', name: 'Spark', cost: 0, starting: true },
+    { id: 'maelle-breaking-rules', name: 'Breaking Rules', cost: 4, requires: ['maelle-fleuret-fury'], unsupportedPurchase: true },
+    { id: 'maelle-burning-canvas', name: 'Burning Canvas', cost: 6, storyGated: true, unsupportedPurchase: true },
+    { id: 'maelle-fleuret-fury', name: 'Fleuret Fury', cost: 2, requires: ['maelle-guard-up'], unsupportedPurchase: true }
   ],
   sciel: [
-    { id: 'sciel-dark-cleansing', name: 'Dark Cleansing', cost: 2 },
-    { id: 'sciel-firing-shadow', name: 'Firing Shadow', cost: 2 },
-    { id: 'sciel-bad-omen', name: 'Bad Omen', cost: 4 },
-    { id: 'sciel-dark-wave', name: 'Dark Wave', cost: 10 },
-    { id: 'sciel-fortunes-fury', name: "Fortune's Fury", cost: 6 }
+    { id: 'sciel-dark-cleansing', name: 'Dark Cleansing', cost: 2, unsupportedPurchase: true },
+    { id: 'sciel-firing-shadow', name: 'Firing Shadow', cost: 2, unsupportedPurchase: true },
+    { id: 'sciel-bad-omen', name: 'Bad Omen', cost: 4, unsupportedPurchase: true },
+    { id: 'sciel-dark-wave', name: 'Dark Wave', cost: 10, unsupportedPurchase: true },
+    { id: 'sciel-fortunes-fury', name: "Fortune's Fury", cost: 6, unsupportedPurchase: true }
   ],
   verso: [
-    { id: 'verso-assault-zero', name: 'Assault Zero', cost: 1 },
-    { id: 'verso-ascending-assault', name: 'Ascending Assault', cost: 1 },
-    { id: 'verso-blitz', name: 'Blitz', cost: 5 },
-    { id: 'verso-perfect-break', name: 'Perfect Break', cost: 4 },
-    { id: 'verso-steeled-strike', name: 'Steeled Strike', cost: 1 }
+    { id: 'verso-assault-zero', name: 'Assault Zero', cost: 1, unsupportedPurchase: true },
+    { id: 'verso-ascending-assault', name: 'Ascending Assault', cost: 1, unsupportedPurchase: true },
+    { id: 'verso-blitz', name: 'Blitz', cost: 5, unsupportedPurchase: true },
+    { id: 'verso-perfect-break', name: 'Perfect Break', cost: 4, unsupportedPurchase: true },
+    { id: 'verso-steeled-strike', name: 'Steeled Strike', cost: 10, unsupportedPurchase: true }
   ],
   // This character has no ordinary SP tree; learned skills are entered after discovery.
   monoco: []
