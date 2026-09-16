@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { INITIAL_CHARACTERS, LATER_CHARACTER_IDS, attributeLabels } from '../domain/data';
+import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels } from '../domain/data';
 import { ATTRIBUTES, emptyAttributes } from '../domain/types';
 import type { Attributes, Character, Playthrough, SaveData } from '../domain/types';
 import { applyRecommendation, recommend, updateProgress } from '../domain/rules';
@@ -19,8 +19,8 @@ function submitProgress() { if (!active.value || !setupCharacter.value) return; 
 function advise(c: Character) { c.pending=recommend(c); persist(); }
 function confirm(c: Character) { if (!c.pending) return; const changed=applyRecommendation(c,c.pending); if (changed !== c) { Object.assign(c,changed); active.value!.revision++; persist(); notice.value='Applied recommendation recorded once.'; } else notice.value='That advice is stale; update progress before applying it.'; }
 function openReveal() { revealStage.value='warning'; }
-function consentReveal() { revealStage.value=active.value && active.value.nextRevealIndex < LATER_CHARACTER_IDS.length ? 'identity' : 'terminal'; }
-function addLater() { if (!active.value) return; const n=active.value.nextRevealIndex; if (n>=LATER_CHARACTER_IDS.length) { revealStage.value=null; return; } const id0=LATER_CHARACTER_IDS[n]; const c:Character={id:id0,name:`New character ${n+1}`,level:1,invested:emptyAttributes(),points:0,tracked:true,revealed:true}; active.value.characters.push(c); active.value.nextRevealIndex++; active.value.revision++; revealStage.value=null; beginSetup(c); persist(); }
+function consentReveal() { revealStage.value=active.value && active.value.nextRevealIndex < LATER_CHARACTERS.length ? 'identity' : 'terminal'; }
+function addLater() { if (!active.value) return; const n=active.value.nextRevealIndex; if (n>=LATER_CHARACTERS.length) { revealStage.value=null; return; } const candidate=LATER_CHARACTERS[n]; const c:Character={id:candidate.id,name:candidate.name,level:1,invested:{...candidate.defaults},points:0,tracked:true,revealed:true}; active.value.characters.push(c); active.value.nextRevealIndex++; active.value.revision++; revealStage.value=null; beginSetup(c); persist(); }
 function cancelReveal() { revealStage.value=null; }
 </script>
 <template>
