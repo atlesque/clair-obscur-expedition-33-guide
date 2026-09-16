@@ -1,7 +1,7 @@
 import type { CharacterId, Attributes } from './types';
 export const INITIAL_CHARACTERS: Record<'gustave'|'lune', {name:string; defaults: Attributes; source:string}> = {
-  gustave: { name: 'Gustave', defaults: { vitality: 2, might: 2, agility: 0, defence: 1, luck: 0 }, source: 'Research note required before release: verify level-one screen values separately from editorial priorities.' },
-  lune: { name: 'Lune', defaults: { vitality: 2, might: 0, agility: 1, defence: 1, luck: 1 }, source: 'Research note required before release: verify level-one screen values separately from editorial priorities.' }
+  gustave: { name: 'Gustave', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'Destructoid level-one attributes screenshot: all investments zero and three points available.' },
+  lune: { name: 'Lune', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'The Nerd Stash level-one attributes screenshot: all investments zero and three points available.' }
 };
 export const LATER_CHARACTERS: {id: CharacterId; name: string; defaults: Attributes; source: string}[] = [
   { id: 'maelle', name: 'Maelle', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'Source-backed character guide; exact level-one allocation must be checked against the in-game screen before publishing.' },
