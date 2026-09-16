@@ -14,6 +14,39 @@ describe('playthrough management', () => {
     expect(withSecond.playthroughs[0].characters[0].level).toBe(6);
   });
 
+  it('clones nested character state when creating a run', () => {
+    const source: Character = {
+      ...character,
+      invested: { ...character.invested },
+      unlockedSkills: ['overcharge'],
+      loadout: ['overcharge'],
+      scaling: { attributes: { might: 'S' } },
+      pending: {
+        characterId: character.id,
+        base: { ...character.invested },
+        spend: { vitality: 1 },
+        points: 1,
+        revision: character.level,
+        explanation: 'Test advice',
+      },
+    };
+    const created = createPlaythrough(data(), 'Independent', [source]);
+    source.invested.vitality = 99;
+    source.unlockedSkills?.push('marking shot');
+    source.loadout?.splice(0, 1);
+    source.scaling!.attributes.might = 'D';
+    source.pending!.base.vitality = 99;
+    source.pending!.spend.vitality = 4;
+
+    const saved = created.playthroughs[1].characters[0];
+    expect(saved.invested.vitality).toBe(4);
+    expect(saved.unlockedSkills).toEqual(['overcharge']);
+    expect(saved.loadout).toEqual(['overcharge']);
+    expect(saved.scaling?.attributes.might).toBe('S');
+    expect(saved.pending?.base.vitality).toBe(4);
+    expect(saved.pending?.spend.vitality).toBe(1);
+  });
+
   it('removes and restores the same record without advancing reveals', () => {
     const first = data().playthroughs[0];
     const removed = removeCharacter(first, 'gustave');
