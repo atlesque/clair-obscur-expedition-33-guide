@@ -1,0 +1,1058 @@
+{
+  "gustave": [
+    {
+      "id": "lumiere-assault",
+      "name": "Lumière Assault",
+      "cost": 0,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "starting": true
+    },
+    {
+      "id": "overcharge",
+      "name": "Overcharge",
+      "cost": 0,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "starting": true
+    },
+    {
+      "id": "marking-shot",
+      "name": "Marking Shot",
+      "cost": 1,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "overcharge"
+      ]
+    },
+    {
+      "id": "powerful",
+      "name": "Powerful",
+      "cost": 1,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "lumiere-assault"
+      ]
+    },
+    {
+      "id": "recovery",
+      "name": "Recovery",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "powerful"
+      ]
+    },
+    {
+      "id": "from-fire",
+      "name": "From Fire",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "marking-shot"
+      ]
+    },
+    {
+      "id": "shatter",
+      "name": "Shatter",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "recovery"
+      ]
+    },
+    {
+      "id": "strike-storm",
+      "name": "Strike Storm",
+      "cost": 10,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "from-fire"
+      ]
+    }
+  ],
+  "lune": [
+    {
+      "id": "immolation",
+      "name": "Immolation",
+      "cost": 0,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "starting": true
+    },
+    {
+      "id": "ice-lance",
+      "name": "Ice Lance",
+      "cost": 0,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "starting": true
+    },
+    {
+      "id": "healing-light",
+      "name": "Healing Light",
+      "cost": 1,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills"
+    },
+    {
+      "id": "earth-rising",
+      "name": "Earth Rising",
+      "cost": 1,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills"
+    },
+    {
+      "id": "thunderfall",
+      "name": "Thunderfall",
+      "cost": 1,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills"
+    },
+    {
+      "id": "thermal-transfer",
+      "name": "Thermal Transfer",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "earth-rising"
+      ]
+    },
+    {
+      "id": "wildfire",
+      "name": "Wildfire",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "thunderfall"
+      ]
+    },
+    {
+      "id": "electrify",
+      "name": "Electrify",
+      "cost": 1,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "thunderfall"
+      ]
+    },
+    {
+      "id": "rebirth",
+      "name": "Rebirth",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "healing-light"
+      ]
+    },
+    {
+      "id": "rockslide",
+      "name": "Rockslide",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "earth-rising"
+      ]
+    },
+    {
+      "id": "mayhem",
+      "name": "Mayhem",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "electrify",
+          "thermal-transfer"
+        ]
+      ]
+    },
+    {
+      "id": "revitalization",
+      "name": "Revitalization",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "rebirth"
+      ]
+    },
+    {
+      "id": "crippling-tsunami",
+      "name": "Crippling Tsunami",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "thermal-transfer"
+      ]
+    },
+    {
+      "id": "crustal-crush",
+      "name": "Crustal Crush",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "rockslide"
+      ]
+    },
+    {
+      "id": "lightning-dance",
+      "name": "Lightning Dance",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "electrify"
+      ]
+    },
+    {
+      "id": "fire-rage",
+      "name": "Fire Rage",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "wildfire"
+      ]
+    },
+    {
+      "id": "elemental-trick",
+      "name": "Elemental Trick",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "mayhem"
+      ]
+    },
+    {
+      "id": "typhoon",
+      "name": "Typhoon",
+      "cost": 8,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "crippling-tsunami"
+      ]
+    },
+    {
+      "id": "storm-caller",
+      "name": "Storm Caller",
+      "cost": 8,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "lightning-dance"
+      ]
+    },
+    {
+      "id": "terraquake",
+      "name": "Terraquake",
+      "cost": 10,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "crustal-crush"
+      ]
+    },
+    {
+      "id": "hell",
+      "name": "Hell",
+      "cost": 10,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "fire-rage"
+      ]
+    },
+    {
+      "id": "elemental-genesis",
+      "name": "Elemental Genesis",
+      "cost": 10,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "storm-caller",
+          "elemental-trick",
+          "typhoon"
+        ]
+      ]
+    }
+  ],
+  "maelle": [
+    {
+      "id": "maelle-spark",
+      "name": "Spark",
+      "cost": 0,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "starting": true
+    },
+    {
+      "id": "maelle-offensive-switch",
+      "name": "Offensive Switch",
+      "cost": 0,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "starting": true
+    },
+    {
+      "id": "maelle-percee",
+      "name": "Percée",
+      "cost": 0,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "starting": true
+    },
+    {
+      "id": "maelle-swift-stride",
+      "name": "Swift Stride",
+      "cost": 1,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-percee"
+      ]
+    },
+    {
+      "id": "maelle-guard-up",
+      "name": "Guard Up",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-swift-stride"
+      ]
+    },
+    {
+      "id": "maelle-fleuret-fury",
+      "name": "Fleuret Fury",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-guard-up"
+      ]
+    },
+    {
+      "id": "maelle-degagement",
+      "name": "Degagement",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-spark"
+      ]
+    },
+    {
+      "id": "maelle-breaking-rules",
+      "name": "Breaking Rules",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-fleuret-fury"
+      ]
+    },
+    {
+      "id": "maelle-guard-down",
+      "name": "Guard Down",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "maelle-guard-up",
+          "maelle-degagement"
+        ]
+      ]
+    },
+    {
+      "id": "maelle-mezzo-forte",
+      "name": "Mezzo Forte",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-degagement"
+      ]
+    },
+    {
+      "id": "maelle-egide",
+      "name": "Égide",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-guard-up"
+      ]
+    },
+    {
+      "id": "maelle-rain-of-fire",
+      "name": "Rain of Fire",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-degagement"
+      ]
+    },
+    {
+      "id": "maelle-fencers-flurry",
+      "name": "Fencer's Flurry",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-breaking-rules"
+      ]
+    },
+    {
+      "id": "maelle-combustion",
+      "name": "Combustion",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-rain-of-fire"
+      ]
+    },
+    {
+      "id": "maelle-revenge",
+      "name": "Revenge",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-combustion"
+      ]
+    },
+    {
+      "id": "maelle-momentum-strike",
+      "name": "Momentum Strike",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-egide"
+      ]
+    },
+    {
+      "id": "maelle-last-chance",
+      "name": "Last Chance",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "maelle-mezzo-forte",
+          "maelle-payback"
+        ]
+      ]
+    },
+    {
+      "id": "maelle-payback",
+      "name": "Payback",
+      "cost": 8,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "maelle-last-chance",
+          "maelle-momentum-strike"
+        ]
+      ]
+    },
+    {
+      "id": "maelle-pyrolyse",
+      "name": "Pyrolyse",
+      "cost": 8,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-revenge"
+      ]
+    },
+    {
+      "id": "maelle-sword-ballet",
+      "name": "Sword Ballet",
+      "cost": 10,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "maelle-fencers-flurry"
+      ]
+    },
+    {
+      "id": "maelle-phantom-strike",
+      "name": "Phantom Strike",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "maelle-offensive-switch",
+          "maelle-burning-canvas"
+        ]
+      ],
+      "storyGated": true
+    },
+    {
+      "id": "maelle-stendhal",
+      "name": "Stendhal",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "maelle-percee",
+          "maelle-burning-canvas"
+        ]
+      ],
+      "storyGated": true
+    },
+    {
+      "id": "maelle-burning-canvas",
+      "name": "Burning Canvas",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "maelle-phantom-strike",
+          "maelle-stendhal"
+        ]
+      ],
+      "storyGated": true
+    },
+    {
+      "id": "maelle-gustaves-homage",
+      "name": "Gustave's Homage",
+      "cost": 0,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "storyGated": true,
+      "acquisition": "learned"
+    }
+  ],
+  "sciel": [
+    {
+      "id": "sciel-focused-foretell",
+      "name": "Focused Foretell",
+      "cost": 0,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "starting": true
+    },
+    {
+      "id": "sciel-twilight-slash",
+      "name": "Twilight Slash",
+      "cost": 0,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "starting": true
+    },
+    {
+      "id": "sciel-harvest",
+      "name": "Harvest",
+      "cost": 1,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-twilight-slash",
+          "sciel-searing-bond"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-rush",
+      "name": "Rush",
+      "cost": 1,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-focused-foretell",
+          "sciel-spectral-sweep"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-marking-card",
+      "name": "Marking Card",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-focused-foretell",
+          "sciel-bad-omen"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-phantom-blade",
+      "name": "Phantom Blade",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-twilight-slash",
+          "sciel-sealed-fate"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-searing-bond",
+      "name": "Searing Bond",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-harvest",
+          "sciel-firing-shadow"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-spectral-sweep",
+      "name": "Spectral Sweep",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-rush",
+          "sciel-dark-cleansing"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-firing-shadow",
+      "name": "Firing Shadow",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-searing-bond",
+          "sciel-plentiful-harvest",
+          "sciel-fortunes-fury"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-dark-cleansing",
+      "name": "Dark Cleansing",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-spectral-sweep",
+          "sciel-card-weaver",
+          "sciel-intervention"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-sealed-fate",
+      "name": "Sealed Fate",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-phantom-blade",
+          "sciel-grim-harvest"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-bad-omen",
+      "name": "Bad Omen",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-marking-card",
+          "sciel-delaying-slash"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-plentiful-harvest",
+      "name": "Plentiful Harvest",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-firing-shadow",
+          "sciel-final-path"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-card-weaver",
+      "name": "Card Weaver",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-dark-cleansing",
+          "sciel-all-set"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-grim-harvest",
+      "name": "Grim Harvest",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-sealed-fate",
+          "sciel-dark-wave"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-fortunes-fury",
+      "name": "Fortune's Fury",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-firing-shadow",
+          "sciel-our-sacrifice"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-intervention",
+      "name": "Intervention",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-spectral-sweep",
+          "sciel-dark-cleansing",
+          "sciel-final-path"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-all-set",
+      "name": "All Set",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-card-weaver",
+          "sciel-twilight-dance"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-delaying-slash",
+      "name": "Delaying Slash",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-bad-omen",
+          "sciel-dark-wave"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-our-sacrifice",
+      "name": "Our Sacrifice",
+      "cost": 8,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-fortunes-fury",
+          "sciel-twilight-dance"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-dark-wave",
+      "name": "Dark Wave",
+      "cost": 10,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-grim-harvest",
+          "sciel-delaying-slash",
+          "sciel-final-path"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-twilight-dance",
+      "name": "Twilight Dance",
+      "cost": 10,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-our-sacrifice",
+          "sciel-all-set",
+          "sciel-final-path"
+        ]
+      ]
+    },
+    {
+      "id": "sciel-final-path",
+      "name": "Final Path",
+      "cost": 10,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "sciel-plentiful-harvest",
+          "sciel-dark-wave",
+          "sciel-intervention",
+          "sciel-twilight-dance"
+        ]
+      ]
+    }
+  ],
+  "verso": [
+    {
+      "id": "verso-assault-zero",
+      "name": "Assault Zero",
+      "cost": 0,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "starting": true
+    },
+    {
+      "id": "verso-from-fire",
+      "name": "From Fire",
+      "cost": 0,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "starting": true
+    },
+    {
+      "id": "verso-perfect-recovery",
+      "name": "Perfect Recovery",
+      "cost": 1,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "verso-from-fire"
+      ]
+    },
+    {
+      "id": "verso-marking-shot",
+      "name": "Marking Shot",
+      "cost": 1,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-assault-zero",
+          "verso-quick-strike"
+        ]
+      ]
+    },
+    {
+      "id": "verso-quick-strike",
+      "name": "Quick Strike",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-marking-shot",
+          "verso-paradigm-shift",
+          "verso-powerful",
+          "verso-berserk-slash"
+        ]
+      ]
+    },
+    {
+      "id": "verso-powerful",
+      "name": "Powerful",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-quick-strike",
+          "verso-leadership"
+        ]
+      ]
+    },
+    {
+      "id": "verso-purification",
+      "name": "Purification",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-perfect-recovery",
+          "verso-paradigm-shift",
+          "verso-blitz",
+          "verso-follow-up"
+        ]
+      ]
+    },
+    {
+      "id": "verso-paradigm-shift",
+      "name": "Paradigm Shift",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-purification",
+          "verso-quick-strike",
+          "verso-perfect-break"
+        ]
+      ]
+    },
+    {
+      "id": "verso-berserk-slash",
+      "name": "Berserk Slash",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-quick-strike",
+          "verso-burden",
+          "verso-perfect-break",
+          "verso-defiant-strike"
+        ]
+      ]
+    },
+    {
+      "id": "verso-blitz",
+      "name": "Blitz",
+      "cost": 2,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-purification",
+          "verso-ascending-assault",
+          "verso-radiant-slash",
+          "verso-perfect-break"
+        ]
+      ]
+    },
+    {
+      "id": "verso-perfect-break",
+      "name": "Perfect Break",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-blitz",
+          "verso-paradigm-shift",
+          "verso-berserk-slash"
+        ]
+      ]
+    },
+    {
+      "id": "verso-follow-up",
+      "name": "Follow Up",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requires": [
+        "verso-purification"
+      ]
+    },
+    {
+      "id": "verso-ascending-assault",
+      "name": "Ascending Assault",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-blitz",
+          "verso-speed-burst"
+        ]
+      ]
+    },
+    {
+      "id": "verso-leadership",
+      "name": "Leadership",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-powerful",
+          "verso-phantom-stars"
+        ]
+      ]
+    },
+    {
+      "id": "verso-burden",
+      "name": "Burden",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-berserk-slash",
+          "verso-phantom-stars"
+        ]
+      ]
+    },
+    {
+      "id": "verso-radiant-slash",
+      "name": "Radiant Slash",
+      "cost": 4,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-blitz",
+          "verso-light-holder"
+        ]
+      ]
+    },
+    {
+      "id": "verso-defiant-strike",
+      "name": "Defiant Strike",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-berserk-slash",
+          "verso-strike-storm"
+        ]
+      ]
+    },
+    {
+      "id": "verso-speed-burst",
+      "name": "Speed Burst",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-overload",
+          "verso-ascending-assault"
+        ]
+      ]
+    },
+    {
+      "id": "verso-overload",
+      "name": "Overload",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-follow-up",
+          "verso-speed-burst"
+        ]
+      ]
+    },
+    {
+      "id": "verso-light-holder",
+      "name": "Light Holder",
+      "cost": 6,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-radiant-slash",
+          "verso-end-bringer"
+        ]
+      ]
+    },
+    {
+      "id": "verso-phantom-stars",
+      "name": "Phantom Stars",
+      "cost": 8,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-leadership",
+          "verso-burden"
+        ]
+      ]
+    },
+    {
+      "id": "verso-strike-storm",
+      "name": "Strike Storm",
+      "cost": 8,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-defiant-strike",
+          "verso-steeled-strike"
+        ]
+      ]
+    },
+    {
+      "id": "verso-end-bringer",
+      "name": "End Bringer",
+      "cost": 10,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-light-holder",
+          "verso-steeled-strike"
+        ]
+      ]
+    },
+    {
+      "id": "verso-steeled-strike",
+      "name": "Steeled Strike",
+      "cost": 10,
+      "source": "https://clair-obscur.fandom.com/wiki/Skills",
+      "requiresAny": [
+        [
+          "verso-strike-storm",
+          "verso-end-bringer"
+        ]
+      ]
+    }
+  ],
+  "monoco": []
+}

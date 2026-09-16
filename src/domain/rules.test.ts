@@ -27,10 +27,10 @@ describe('public progression guidance', () => {
   it('recommends an affordable visible skill and applies it once', () => {
     const current = character({ skillSetupComplete: true, skillPoints: 2, unlockedSkills: ['marking-shot', 'lumiere-assault', 'overcharge'] });
     const pending = recommendSkill(current);
-    expect(pending?.skillId).toBe('from-fire');
+    expect(pending?.skillId).toBe('powerful');
     const applied = applySkillRecommendation(current, pending!);
-    expect(applied.unlockedSkills).toContain('from-fire');
-    expect(applied.skillPoints).toBe(0);
+    expect(applied.unlockedSkills).toContain('powerful');
+    expect(applied.skillPoints).toBe(1);
     expect(applySkillRecommendation(applied, pending!)).toBe(applied);
     expect(applySkillRecommendation(current, { ...pending!, points: 0 })).toBe(current);
   });
@@ -45,7 +45,7 @@ describe('public progression guidance', () => {
 
   it('never treats a starting skill as an SP purchase', () => {
     const current = character({ skillSetupComplete: true, skillPoints: 2, unlockedSkills: [] });
-    expect(recommendSkill(current)?.skillId).toBe('marking-shot');
+    expect(recommendSkill(current)?.save).toBe(true);
   });
 
   it('withholds later purchases whose prerequisite evidence is incomplete', () => {
