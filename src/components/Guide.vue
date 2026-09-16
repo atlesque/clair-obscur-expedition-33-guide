@@ -46,6 +46,7 @@ function manageCreate(){if(!state.value)return;const chars=newSelected.value.map
 function manageRemove(c:Character){if(!state.value||!active.value)return;const next=removeCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p)=>p.id===next.id?next:p);persist(null)}
 function manageRestore(c:Character){if(!state.value||!active.value)return;const next=restoreCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p)=>p.id===next.id?next:p);managementOpen.value=false;persist(null)}
 function manageReset(){if(!state.value||!active.value)return;state.value=resetPlaythrough(state.value,active.value.id);managementOpen.value=false;persist(null)}
+function beginFresh(){if(!active.value)return;active.value.characters=selected.value.map((key)=>{const d=INITIAL_CHARACTERS[key as keyof typeof INITIAL_CHARACTERS];return{id:key,name:d.name,level:1,invested:{...d.defaults},points:3,tracked:true,revealed:true};});active.value.nextRevealIndex=0;active.value.revision++;persist(null)}
 const snapshot = () =>
   state.value ? (JSON.parse(JSON.stringify(state.value)) as SaveData) : null;
 function persist(before: SaveData | null) {
@@ -230,7 +231,7 @@ function cancelReveal() {
         ><span aria-live="polite">{{ notice }}</span>
         <button class="link" @click="managementOpen=true">Playthrough menu</button>
       </nav>
-      <section class="party">
+      <section v-if="active.characters.length===0" class="card empty"><h2>Start this playthrough again</h2><p>Choose the initial party to begin recording this run.</p><button class="primary" @click="beginFresh">Begin fresh setup</button></section><section v-else class="party">
         <CharacterCard
           v-for="c in active.characters.filter((x) => x.tracked)"
           :key="c.id"
