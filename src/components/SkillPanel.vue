@@ -1,0 +1,39 @@
+<script setup lang="ts">
+import { computed, ref } from 'vue';
+import { ATTRIBUTES } from '../domain/types';
+import { SKILLS, attributeLabels } from '../domain/data';
+import type { Character, ScalingGrade } from '../domain/types';
+import { applySkillRecommendation, recommendSkill, recordLoadout, suggestLoadout } from '../domain/rules';
+import FocusDialog from './FocusDialog.vue';
+const props = defineProps<{ character: Character }>();
+const emit = defineEmits<{ update: [character: Character] }>();
+const open = ref(false); const discoveryOpen = ref(false); const discoveryConfirmed = ref(false); const error = ref('');
+const scaling = ref<Record<string, string>>({}); const manual = ref(''); const owned = ref<string[]>([]); const discovered = ref<string[]>([]); const points = ref<number | null>(0); const skillsEnabled = ref(false);
+const learned = computed(() => props.character.id === 'monoco' || props.character.skillAcquisition === 'learned');
+const catalog = computed(() => SKILLS[props.character.id] ?? []);
+const visibleSkills = computed(() => catalog.value.filter(s => !s.storyGated || discovered.value.includes(s.id)));
+const nameFor = (id: string) => learned.value ? id : (catalog.value.find(s => s.id === id)?.name ?? 'Recorded skill');
+function show() { scaling.value = Object.fromEntries(ATTRIBUTES.map(a => [a, (props.character.weaponScaling?.[a] ?? props.character.scaling?.attributes[a] ?? '').toUpperCase()])); manual.value = (props.character.unlockedSkills ?? []).join(', '); owned.value = [...(props.character.unlockedSkills ?? [])]; discovered.value = [...(props.character.discoveredSkillIds ?? [])]; points.value = props.character.skillPoints ?? 0; skillsEnabled.value = !!props.character.skillSetupComplete; error.value = ''; open.value = true; }
+function close() { open.value = false; error.value = ''; }
+function validPoints(value: number | null): value is number { return value !== null && Number.isInteger(value) && value >= 0; }
+function commit(kind: 'scaling' | 'skills') { const entries = Object.entries(scaling.value).filter(([, value]) => value); if (entries.length > 2 || entries.some(([, value]) => !['D', 'C', 'B', 'A', 'S'].includes(value))) { error.value = 'Enter at most two weapon scaling attributes using grades D through S.'; return; } if (kind === 'skills' && !learned.value && !validPoints(points.value)) { error.value = 'Enter available skill points as a whole number of zero or more.'; return; } const next = { ...props.character, weaponScaling: Object.fromEntries(entries) as Record<string, ScalingGrade>, pending: undefined }; if (kind === 'skills') { next.skillSetupComplete = true; next.discoveredSkillIds = [...discovered.value]; next.skillPoints = learned.value ? undefined : points.value!; next.unlockedSkills = learned.value ? manual.value.split(',').map(value => value.trim()).filter(Boolean) : [...owned.value]; next.loadout = (props.character.loadout ?? []).filter(skill => next.unlockedSkills?.includes(skill)); next.pendingSkill = undefined; } emit('update', next); close(); }
+function advice() { emit('update', { ...props.character, pendingSkill: recommendSkill(props.character) ?? undefined }); }
+function confirm() { if (props.character.pendingSkill) { const next = applySkillRecommendation({ ...props.character }, props.character.pendingSkill); if (next !== props.character) emit('update', next); } }
+function loadout() { emit('update', recordLoadout({ ...props.character }, suggestLoadout(props.character))); }
+function beginDiscovery() { discovered.value = [...(props.character.discoveredSkillIds ?? [])]; discoveryConfirmed.value = false; discoveryOpen.value = true; }
+function saveDiscovery() { emit('update', { ...props.character, discoveredSkillIds: [...discovered.value], pendingSkill: undefined }); discoveryOpen.value = false; }
+</script>
+<template>
+  <section class="card guidance-tools"><h3>{{ character.name }} guidance</h3><button type="button" @click="show">Skill and weapon setup</button><button type="button" :disabled="!character.skillSetupComplete" @click="advice">Get skill advice</button><button type="button" @click="beginDiscovery">Record a discovered skill</button><p v-if="character.pendingSkill" class="advice"><strong>Pending skill advice</strong><br>{{ character.pendingSkill.explanation }} <button v-if="character.pendingSkill.skillId" type="button" class="primary" @click="confirm">I've applied this skill</button></p><p v-if="character.skillSetupComplete">{{ character.unlockedSkills?.map(nameFor).join(', ') || 'No skills recorded yet' }} · {{ character.skillPoints ?? 0 }} SP</p><p v-if="character.skillSetupComplete">Suggested loadout: {{ suggestLoadout(character).map(nameFor).join(', ') || 'none yet' }} <button type="button" @click="loadout">Record suggested loadout</button></p><p v-if="character.loadout?.length">Recorded loadout: {{ character.loadout.map(nameFor).join(', ') }}</p></section>
+  <FocusDialog v-if="open" :title="`Skill setup: ${character.name}`" @close="close"><p>Record only what you have confirmed in game. Save scaling alone to keep skill advice unavailable.</p><p v-if="error" class="error" role="alert">{{ error }}</p><fieldset><legend>Weapon scaling (optional)</legend><label v-for="a in ATTRIBUTES" :key="a">{{ attributeLabels[a] }}<select v-model="scaling[a]" :aria-label="`${attributeLabels[a]} scaling`"><option value="">Not entered</option><option v-for="grade in ['D','C','B','A','S']" :key="grade" :value="grade">{{ grade }}</option></select></label></fieldset><template v-if="!skillsEnabled"><p>Skill setup is currently skipped.</p></template><template v-else><label v-if="!learned">Available skill points<input type="number" min="0" step="1" v-model.number="points"></label><label v-if="learned">Learned skills, comma separated<input v-model="manual" aria-label="Learned skills"></label><fieldset v-else><legend>Owned skills</legend><label v-for="skill in visibleSkills" :key="skill.id"><input type="checkbox" :value="skill.id" v-model="owned"> {{ skill.name }}</label></fieldset></template><div class="actions"><button type="button" @click="close">Set up later</button><button type="button" @click="commit('scaling')">Save scaling only</button><button type="button" class="primary" @click="skillsEnabled=true">Continue skill setup</button><button v-if="skillsEnabled" type="button" class="primary" @click="commit('skills')">Save skill setup</button></div></FocusDialog>
+  <FocusDialog v-if="discoveryOpen" title="Record a discovered skill" @close="discoveryOpen=false"><template v-if="!discoveryConfirmed"><p>The next skill names stay hidden until you confirm that you discovered a new skill in game.</p><button type="button" class="primary" @click="discoveryConfirmed=true">I discovered a skill</button><button type="button" @click="discoveryOpen=false">Cancel</button></template><template v-else><p>Select the skills you have confirmed. This only records discovery; it does not purchase anything.</p><fieldset><legend>Discovered skills</legend><label v-for="skill in catalog.filter(s => s.storyGated)" :key="skill.id"><input type="checkbox" :value="skill.id" v-model="discovered"> {{ skill.name }}</label></fieldset><button type="button" class="primary" @click="saveDiscovery">Save discovered skills</button><button type="button" @click="discoveryOpen=false">Cancel</button></template></FocusDialog>
+</template>
+
+<style scoped>
+.guidance-tools { margin-top: 18px; }
+.guidance-tools > button { margin: 6px 8px 8px 0; }
+.guidance-tools p { margin: 12px 0; overflow-wrap: anywhere; }
+select { width: 100%; padding: 10px; color: #f6f1e8; background: #171717; border: 1px solid #88705d; border-radius: 5px; font-size: 1rem; color-scheme: dark; }
+label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: 10px; }
+input[type="checkbox"] { width: auto; flex: 0 0 auto; }
+</style>

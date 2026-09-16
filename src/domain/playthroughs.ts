@@ -46,7 +46,7 @@ export function removeCharacter(playthrough: Playthrough, characterId: string): 
     ...playthrough,
     revision: playthrough.revision + 1,
     characters: playthrough.characters.map((candidate) =>
-      candidate.id === characterId ? { ...candidate, tracked: false, pending: undefined } : candidate,
+      candidate.id === characterId ? { ...candidate, tracked: false, pending: undefined, pendingSkill: undefined } : candidate,
     ),
   };
 }
@@ -58,7 +58,7 @@ export function restoreCharacter(playthrough: Playthrough, characterId: string):
     ...playthrough,
     revision: playthrough.revision + 1,
     characters: playthrough.characters.map((candidate) =>
-      candidate.id === characterId ? { ...candidate, tracked: true, pending: undefined } : candidate,
+      candidate.id === characterId ? { ...candidate, tracked: true, pending: undefined, pendingSkill: undefined } : candidate,
     ),
   };
 }

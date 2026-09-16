@@ -16,6 +16,7 @@ import { id, load, save } from "../domain/storage";
 import CharacterCard from "./CharacterCard.vue";
 import FocusDialog from "./FocusDialog.vue";
 import SetupPanel from "./SetupPanel.vue";
+import SkillPanel from "./SkillPanel.vue";
 import { createPlaythrough, removeCharacter, resetPlaythrough, restoreCharacter, switchPlaythrough } from "../domain/playthroughs";
 const loaded =
   typeof localStorage !== "undefined" ? load() : { kind: "missing" as const };
@@ -189,6 +190,15 @@ function advise(c: Character) {
   c.pending = recommend(c);
   persist(before);
 }
+function updateGuidance(c: Character) {
+  if (!active.value) return;
+  const before = snapshot();
+  const index = active.value.characters.findIndex((x) => x.id === c.id);
+  if (index < 0) return;
+  active.value.characters[index] = c;
+  active.value.revision++;
+  persist(before);
+}
 function dismiss(c: Character) {
   const before = snapshot();
   c.pending = undefined;
@@ -278,6 +288,7 @@ function cancelReveal() {
           @dismiss="dismiss"
           @remove="manageRemove"
         />
+        <SkillPanel v-for="c in active.characters.filter((x) => x.tracked)" :key="`guidance-${active.id}-${c.id}`" :character="c" @update="updateGuidance" />
       </section>
       <button class="add" @click="openReveal">＋ Add a character</button>
       <p class="research">
