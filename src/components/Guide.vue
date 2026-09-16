@@ -57,6 +57,8 @@ const tracked = computed(
 const removed = computed(
   () => active.value?.characters.filter((c) => !c.tracked) ?? [],
 );
+if (active.value && active.value.characters.length === 0)
+  freshSetup.value = true;
 function closeDialogs(event: KeyboardEvent) {
   if (event.key === "Escape") {
     managementOpen.value = false;
@@ -211,6 +213,7 @@ function resetSelected() {
 function switchTo(id0: string) {
   if (!state.value) return;
   state.value = switchPlaythrough(state.value, id0);
+  freshSetup.value = false;
   setupCharacter.value = null;
   revealStage.value = null;
   managementOpen.value = false;
@@ -362,7 +365,13 @@ function chooseInitialCharacters() {
         ><button class="primary" @click="createAnother">
           Create independent playthrough
         </button>
-        <fieldset><legend>Initial characters for the new run</legend><label v-for="(d,key) in INITIAL_CHARACTERS" :key="key" class="check"><input v-model="newSelected" type="checkbox" :value="key"> {{d.name}}</label></fieldset>
+        <fieldset>
+          <legend>Initial characters for the new run</legend>
+          <label v-for="(d, key) in INITIAL_CHARACTERS" :key="key" class="check"
+            ><input v-model="newSelected" type="checkbox" :value="key" />
+            {{ d.name }}</label
+          >
+        </fieldset>
         <div class="run-list">
           <button
             v-for="p in state.playthroughs"
