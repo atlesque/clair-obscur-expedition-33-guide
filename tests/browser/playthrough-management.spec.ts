@@ -121,3 +121,25 @@ test("isolates progressed runs through removal, reset, reload, and restoration",
   await expect(page.getByText("2 attribute points available")).toBeVisible();
   await expect(page.getByText("8", { exact: true })).toBeVisible();
 });
+test("cancelling later-character setup through dialog close does not append a duplicate or consume the next reveal", async ({
+  page,
+}) => {
+  await page.getByRole("button", { name: "Create playthrough" }).click();
+  const add = page.getByRole("button", { name: /Add a character/ });
+  await add.click();
+  await page.getByRole("button", { name: "Reveal character" }).click();
+  await page.getByRole("button", { name: "Add to playthrough" }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Update progress" }).first().click();
+  await page.getByRole("button", { name: "Save progress" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Gustave", exact: true }),
+  ).toHaveCount(1);
+
+  await add.click();
+  await page.getByRole("button", { name: "Reveal character" }).click();
+  await expect(page.getByText(/The next character is Maelle/)).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+});
