@@ -1,58 +1,392 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { INITIAL_CHARACTERS, LATER_CHARACTERS, LATER_CHARACTER_IDS, attributeLabels, SKILLS } from '../domain/data';
-import { ATTRIBUTES, emptyAttributes } from '../domain/types';
-import type { Attributes, Character, Playthrough, SaveData } from '../domain/types';
-import { applyRecommendation, recommend, updateProgress, applySkillRecommendation, recommendSkill, suggestLoadout, recordLoadout } from '../domain/rules';
-import { id, load, save } from '../domain/storage';
-import { createPlaythrough, removeCharacter, resetPlaythrough, restoreCharacter, switchPlaythrough } from '../domain/playthroughs';
-
-const loaded = typeof localStorage !== 'undefined' ? load() : { kind: 'missing' as const };
-const state = ref<any>(loaded.kind === 'loaded' ? loaded.data : null);
-const setupName = ref('My Expedition'); const selected = ref<('gustave'|'lune')[]>(['gustave','lune']);
-const saveError = ref(''); const notice = ref(''); const managementOpen = ref(false); const newName = ref('');
-if (loaded.kind === 'invalid') saveError.value = loaded.error;
-const revealStage = ref<'warning'|'identity'|'terminal'|null>(null); const setupCharacter = ref<Character | null>(null); const scalingCharacter = ref<Character | null>(null); const scalingOpen = ref(false); const scalingDraft = ref<Record<string,string>>({}); const skillCharacter = ref<Character|null>(null); const manualSkills = ref(''); const toolCharacterId = ref('gustave');
-const draft = ref<{level:number; points:number; invested:Attributes}>({level:1, points:0, invested:emptyAttributes()});
-const active = computed<any>(() => (state.value?.playthroughs as Playthrough[] | undefined)?.find((p: Playthrough) => p.id === state.value?.activeId) ?? null);
-const tracked = computed<Character[]>(() => active.value?.characters.filter((c: Character) => c.tracked) ?? []);
-const removed = computed<Character[]>(() => active.value?.characters.filter((c: Character) => !c.tracked) ?? []);
-function persist() { if (!state.value) return; const result = save(state.value); saveError.value = result.error ?? ''; notice.value = result.ok ? 'Saved' : ''; }
-function initialCharacters() { return selected.value.map((characterId) => { const d = INITIAL_CHARACTERS[characterId]; return {id:characterId,name:d.name,level:1,invested:{...d.defaults},points:3,tracked:true,revealed:true}; }); }
-function start() { const p:Playthrough={id:id('playthrough'),name:setupName.value.trim()||'My Expedition',characters:initialCharacters(),nextRevealIndex:0,revision:0}; state.value={version:1,playthroughs:[p],activeId:p.id}; persist(); }
-function beginSetup(c: Character) { setupCharacter.value=c; draft.value={level:c.level,points:c.points,invested:{...c.invested}}; }
-function submitProgress() { if (!active.value || !setupCharacter.value) return; const i=active.value.characters.findIndex((c: Character)=>c.id===setupCharacter.value?.id); if(i<0)return; active.value.characters[i]=updateProgress(active.value.characters[i],draft.value); active.value.revision++; setupCharacter.value=null; persist(); }
-function advise(c: Character) { c.pending=recommend(c); persist(); }
-function openScaling(c:Character){scalingCharacter.value=c;scalingDraft.value={...c.weaponScaling};scalingOpen.value=true}
-function saveScaling(){if(!scalingCharacter.value)return;scalingCharacter.value.weaponScaling=Object.fromEntries(Object.entries(scalingDraft.value).filter(([,v])=>v));scalingCharacter.value.pending=undefined;scalingCharacter.value=null;scalingOpen.value=false;persist()}
-function openSkills(c:Character){skillCharacter.value=c;skillCharacter.value.unlockedSkills=skillCharacter.value.unlockedSkills??[];manualSkills.value=skillCharacter.value.unlockedSkills.join(', ')}
-function saveSkills(){if(!skillCharacter.value)return;skillCharacter.value.skillSetupComplete=true;skillCharacter.value.unlockedSkills=skillCharacter.value.skillAcquisition==='learned'?manualSkills.value.split(',').map((s)=>s.trim()).filter(Boolean):skillCharacter.value.unlockedSkills;skillCharacter.value.skillPoints=skillCharacter.value.skillPoints??0;skillCharacter.value=null;persist()}
-function discoverSkills(){if(!skillCharacter.value)return;skillCharacter.value.discoveredSkillIds=[...(skillCharacter.value.discoveredSkillIds??[]),...(SKILLS[skillCharacter.value.id]??[]).filter((skill)=>skill.storyGated).map((skill)=>skill.id)]}
-function skillAdvice(c:Character){c.pendingSkill=recommendSkill(c)??undefined;persist()}
-function confirmSkill(c:Character){if(c.pendingSkill){const next=applySkillRecommendation(c,c.pendingSkill);if(next!==c){Object.assign(c,next);persist()}}}
-function suggested(c:Character){return suggestLoadout(c)}
-function saveLoadout(c:Character){Object.assign(c,recordLoadout(c,suggested(c)));persist()}
-function confirm(c: Character) { if(!c.pending||!active.value)return; const changed=applyRecommendation(c,c.pending); if(changed!==c){Object.assign(c,changed);active.value.revision++;notice.value='Applied recommendation recorded once.';persist();}else notice.value='That advice is stale; update progress before applying it.'; }
-function openReveal(){revealStage.value='warning'} function consentReveal(){revealStage.value=active.value&&active.value.nextRevealIndex<LATER_CHARACTER_IDS.length?'identity':'terminal'} function cancelReveal(){revealStage.value=null}
-function addLater(){if(!active.value)return;const n=active.value.nextRevealIndex;const details=LATER_CHARACTERS[n];if(!details){revealStage.value=null;return}const c:Character={id:details.id,name:details.name,level:1,invested:{...details.defaults},points:0,tracked:false,revealed:true,skillAcquisition:details.id==='monoco'?'learned':'points'};active.value.characters.push(c);active.value.nextRevealIndex++;active.value.revision++;revealStage.value=null;beginSetup(c);persist()}
-function hide(c:Character){if(!state.value||!active.value)return;const next=removeCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p: Playthrough)=>p.id===next.id?next:p);setupCharacter.value=null;persist()}
-function restore(c:Character){if(!state.value||!active.value)return;const next=restoreCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p: Playthrough)=>p.id===next.id?next:p);persist()}
-function resetSelected(){if(!state.value||!active.value)return;state.value=resetPlaythrough(state.value,active.value.id);setupCharacter.value=null;scalingCharacter.value=null;scalingOpen.value=false;skillCharacter.value=null;revealStage.value=null;managementOpen.value=false;persist()}
-function switchTo(id0:string){if(!state.value)return;state.value=switchPlaythrough(state.value,id0);setupCharacter.value=null;scalingCharacter.value=null;scalingOpen.value=false;skillCharacter.value=null;revealStage.value=null;managementOpen.value=false;persist()}
-function createAnother(){if(!state.value)return;state.value=createPlaythrough(state.value,newName.value,initialCharacters());newName.value='';managementOpen.value=false;persist()}
-function chooseInitialCharacters(){if(!state.value||!active.value)return;active.value.characters=initialCharacters();active.value.revision++;persist()}
+import { computed, ref } from "vue";
+import {
+  INITIAL_CHARACTERS,
+  LATER_CHARACTERS,
+  attributeLabels,
+} from "../domain/data";
+import { ATTRIBUTES, emptyAttributes } from "../domain/types";
+import type { Character, Playthrough, SaveData } from "../domain/types";
+import {
+  applyRecommendation,
+  recommend,
+  updateProgress,
+} from "../domain/rules";
+import { id, load, save } from "../domain/storage";
+import CharacterCard from "./CharacterCard.vue";
+import FocusDialog from "./FocusDialog.vue";
+import SetupPanel from "./SetupPanel.vue";
+import SkillPanel from "./SkillPanel.vue";
+import { createPlaythrough, removeCharacter, resetPlaythrough, restoreCharacter, switchPlaythrough } from "../domain/playthroughs";
+const loaded =
+  typeof localStorage !== "undefined" ? load() : { kind: "missing" as const };
+const state = ref<SaveData | null>(
+  loaded.kind === "loaded" ? loaded.data : null,
+);
+const unreadableSave = loaded.kind === "invalid";
+const setupName = ref("My Expedition");
+const selected = ref<string[]>(["gustave", "lune"]);
+const saveError = ref(loaded.kind === "invalid" ? loaded.error : "");
+const notice = ref("");
+const revealStage = ref<"warning" | "identity" | "terminal" | null>(null);
+const setupCharacter = ref<Character | null>(null);
+const formError = ref("");
+const addingCandidate = ref(false);
+const revealedCandidate = ref<(typeof LATER_CHARACTERS)[number] | null>(null);
+const draft = ref({ level: 1, points: 0, invested: emptyAttributes() });
+const managementOpen = ref(false); const newName = ref(""); const newSelected = ref<string[]>(["gustave", "lune"]);
+const active = computed(
+  () =>
+    state.value?.playthroughs.find((p) => p.id === state.value?.activeId) ??
+    null,
+);
+const removed = computed(() => active.value?.characters.filter((c) => !c.tracked) ?? []);
+function manageSwitch(id0:string){if(!state.value)return;state.value=switchPlaythrough(state.value,id0);setupCharacter.value=null;revealStage.value=null;managementOpen.value=false;persist(null)}
+function manageCreate(){if(!state.value)return;const chars=newSelected.value.map((key)=>{const d=INITIAL_CHARACTERS[key as keyof typeof INITIAL_CHARACTERS];return {id:key,name:d.name,level:1,invested:{...d.defaults},points:3,tracked:true,revealed:true}});state.value=createPlaythrough(state.value,newName.value,chars);newName.value="";managementOpen.value=false;persist(null)}
+function manageRemove(c:Character){if(!state.value||!active.value)return;const next=removeCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p)=>p.id===next.id?next:p);persist(null)}
+function manageRestore(c:Character){if(!state.value||!active.value)return;const next=restoreCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p)=>p.id===next.id?next:p);managementOpen.value=false;persist(null)}
+function manageReset(){if(!state.value||!active.value)return;state.value=resetPlaythrough(state.value,active.value.id);managementOpen.value=false;persist(null)}
+const snapshot = () =>
+  state.value ? (JSON.parse(JSON.stringify(state.value)) as SaveData) : null;
+function persist(before: SaveData | null) {
+  if (!state.value) return true;
+  const result = save(state.value);
+  if (!result.ok) {
+    state.value = before;
+    saveError.value =
+      result.error ?? "Your browser could not save this change.";
+    return false;
+  }
+  saveError.value = "";
+  notice.value = "Saved";
+  return true;
+}
+function start(
+  actual: Record<
+    string,
+    {
+      level: number;
+      points: number;
+      invested: typeof draft.value.invested;
+    } | null
+  > = {},
+) {
+  if (unreadableSave || !selected.value.length) return;
+  const before = snapshot();
+  try {
+    const characters = selected.value.map((key) => {
+      const d = INITIAL_CHARACTERS[key as keyof typeof INITIAL_CHARACTERS];
+      const input = actual[key];
+      if (input)
+        return updateProgress(
+          {
+            id: key,
+            name: d.name,
+            level: 1,
+            invested: { ...d.defaults },
+            points: 3,
+            tracked: true,
+            revealed: true,
+          },
+          input,
+        );
+      return {
+        id: key,
+        name: d.name,
+        level: 1,
+        invested: { ...d.defaults },
+        points: 3,
+        tracked: true,
+        revealed: true,
+      };
+    });
+    const p: Playthrough = {
+      id: id("playthrough"),
+      name: setupName.value.trim() || "My Expedition",
+      characters,
+      nextRevealIndex: 0,
+      revision: 0,
+    };
+    state.value = { version: 1, playthroughs: [p], activeId: p.id };
+    persist(before);
+  } catch (e) {
+    saveError.value =
+      e instanceof Error ? e.message : "Enter valid in-game progress.";
+  }
+}
+function beginSetup(c: Character) {
+  formError.value = "";
+  setupCharacter.value = c;
+  draft.value = {
+    level: c.level,
+    points: c.points,
+    invested: { ...c.invested },
+  };
+}
+function submitProgress() {
+  if (!active.value || !setupCharacter.value) return;
+  try {
+    const before = snapshot();
+    const c = updateProgress({ ...setupCharacter.value }, draft.value);
+    if (addingCandidate.value && revealedCandidate.value) {
+      active.value.characters.push(c);
+      active.value.nextRevealIndex++;
+      addingCandidate.value = false;
+      revealedCandidate.value = null;
+    } else {
+      const i = active.value.characters.findIndex(
+        (x) => x.id === setupCharacter.value?.id,
+      );
+      active.value.characters[i] = c;
+    }
+    active.value.revision++;
+    if (persist(before)) setupCharacter.value = null;
+    formError.value = "";
+  } catch (e) {
+    formError.value =
+      e instanceof Error ? e.message : "Enter valid in-game progress.";
+  }
+}
+function advise(c: Character) {
+  const before = snapshot();
+  c.pending = recommend(c);
+  persist(before);
+}
+function updateGuidance(c: Character) {
+  if (!active.value) return;
+  const before = snapshot();
+  const index = active.value.characters.findIndex((x) => x.id === c.id);
+  if (index < 0) return;
+  active.value.characters[index] = c;
+  active.value.revision++;
+  persist(before);
+}
+function confirm(c: Character) {
+  if (!c.pending || !active.value) return;
+  const before = snapshot();
+  const changed = applyRecommendation(c, c.pending);
+  if (changed === c) {
+    notice.value = "That advice is stale; update progress before applying it.";
+    return;
+  }
+  Object.assign(c, changed);
+  active.value.revision++;
+  if (persist(before)) notice.value = "Applied recommendation recorded once.";
+}
+function openReveal() {
+  revealStage.value = "warning";
+}
+function consentReveal() {
+  if (!active.value) return;
+  const n = active.value.nextRevealIndex;
+  revealStage.value = n < LATER_CHARACTERS.length ? "identity" : "terminal";
+  if (n < LATER_CHARACTERS.length)
+    revealedCandidate.value = LATER_CHARACTERS[n];
+}
+function addLater() {
+  if (!revealedCandidate.value) return;
+  const d = revealedCandidate.value;
+  addingCandidate.value = true;
+  revealStage.value = null;
+  beginSetup({
+    id: d.id,
+    name: d.name,
+    level: 1,
+    invested: { ...d.defaults },
+    points: 0,
+    tracked: true,
+    revealed: true,
+  });
+}
+function cancelReveal() {
+  revealStage.value = null;
+  if (addingCandidate.value) {
+    addingCandidate.value = false;
+    setupCharacter.value = null;
+  }
+}
 </script>
 <template>
-<section v-if="tracked.length" class="card guidance-tools"><h2>Optional guidance setup</h2><p>Choose a tracked character to record weapon scaling or skill ownership.</p><label>Character<select v-model="toolCharacterId"><option v-for="c in tracked" :key="c.id" :value="c.id">{{c.name}}</option></select></label><button @click="openScaling(tracked.find(c=>c.id===toolCharacterId)!)">Weapon scaling</button><button @click="openSkills(tracked.find(c=>c.id===toolCharacterId)!)">Skill setup</button><button @click="skillAdvice(tracked.find(c=>c.id===toolCharacterId)!)" :disabled="!tracked.find(c=>c.id===toolCharacterId)?.skillSetupComplete">Get skill advice</button></section>
-<main class="shell"><header><p class="eyebrow">EXPEDITION 33 · FIELD GUIDE</p><h1>Keep your build on course.</h1><p class="lede">A quiet companion for recording real progress and choosing the next safe step.</p></header>
-<section v-if="!state" class="card setup"><h2>Start a playthrough</h2><p>Name this run and choose only the characters you want to track now.</p><label>Playthrough name<input v-model="setupName" aria-label="Playthrough name"></label><fieldset><legend>Initial characters</legend><label v-for="(d,key) in INITIAL_CHARACTERS" :key="key" class="check"><input v-model="selected" type="checkbox" :value="key"> {{d.name}}</label></fieldset><button class="primary" @click="start">Create playthrough</button></section>
-<template v-else-if="active"><nav class="bar"><strong>{{active.name}}</strong><span class="save-state" aria-live="polite">{{saveError||notice}}</span><button class="link" @click="managementOpen=true">Playthrough menu</button></nav><section v-if="!tracked.length" class="card empty"><h2>No characters are tracked yet</h2><p>Choose initial characters from the playthrough menu to begin this run.</p><button class="primary" @click="managementOpen=true">Open playthrough menu</button></section><section class="party"><article v-for="c in tracked" :key="c.id" class="card character"><div class="card-head"><div><p class="eyebrow">TRACKED CHARACTER</p><h2>{{c.name}}</h2></div><span class="level">LV {{c.level}}</span></div><div class="stats"><div v-for="a in ATTRIBUTES" :key="a"><span>{{attributeLabels[a]}}</span><b>{{c.invested[a]}}</b></div></div><p v-if="c.pending" class="advice"><strong>Pending recommendation</strong><br><span v-for="(amount,a) in c.pending.spend" :key="a">+{{amount}} {{attributeLabels[a]}} </span><br><small>{{c.pending.explanation}}</small></p><p v-if="c.pendingSkill" class="advice"><strong>Pending skill advice</strong><br>{{c.pendingSkill.skillId ? `Save ${c.pendingSkill.points} SP for the next visible skill.` : c.pendingSkill.explanation}}<br><small>{{c.pendingSkill.explanation}}</small><button v-if="c.pendingSkill.skillId" class="primary" @click="confirmSkill(c)">I've applied this skill</button></p><div v-if="c.skillSetupComplete" class="skill-summary"><p>{{c.unlockedSkills?.length ?? 0}} skills owned · {{c.skillPoints ?? 0}} SP available</p><p>Suggested loadout: {{suggested(c).join(', ') || 'none yet'}}</p><p v-if="c.loadout?.length">Recorded equipped loadout: {{c.loadout.join(', ')}}</p><button @click="saveLoadout(c)">Save suggested loadout</button></div><div class="actions"><button @click="beginSetup(c)">Update progress</button><button @click="advise(c)">Get advice <span class="sr-only">for {{c.name}}</span></button><button v-if="c.pending" class="primary" @click="confirm(c)">I've applied these</button><button class="quiet" @click="hide(c)">Remove</button></div><p class="points">{{c.points}} attribute points available</p></article></section><button class="add" @click="openReveal">＋ Add a character</button><p class="research">Guidance is based on recorded in-game progress. Recommendations are editorial advice, not a claim of optimality.</p></template>
-<div v-if="managementOpen" class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="menu-title"><h2 id="menu-title">Playthroughs</h2><p>Each named playthrough keeps its own party, progress, and discoveries.</p><label>New playthrough name<input v-model="newName" aria-label="New playthrough name" placeholder="Another run"></label><button class="primary" @click="createAnother">Create independent playthrough</button><div class="run-list"><button v-for="p in state.playthroughs" :key="p.id" :class="{selected:p.id===active.id}" @click="switchTo(p.id)">{{p.name}}</button></div><div v-if="removed.length" class="removed"><h3>Removed characters</h3><button v-for="c in removed" :key="c.id" @click="restore(c)">Restore {{c.name}}</button></div><button class="danger" @click="resetSelected">Reset this playthrough</button><div class="actions"><button @click="managementOpen=false">Close</button></div></section></div>
-<div v-if="setupCharacter" class="modal-backdrop"><form class="modal" @submit.prevent="submitProgress"><h2>Update {{setupCharacter.name}}</h2><p>Enter what is true in-game. This replaces the recorded inputs and clears old advice.</p><label>Current level<input v-model.number="draft.level" type="number" min="1"></label><label>Available attribute points<input v-model.number="draft.points" type="number" min="0"></label><div class="edit-grid"><label v-for="a in ATTRIBUTES" :key="a">{{attributeLabels[a]}}<input v-model.number="draft.invested[a]" type="number" min="0" max="99"></label></div><div class="actions"><button type="button" @click="setupCharacter=null">Cancel</button><button class="primary">Save progress</button></div></form></div>
-<div v-if="revealStage" class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="reveal-title"><h2 id="reveal-title">Continue your expedition?</h2><p v-if="revealStage==='warning'">Only continue if someone new has joined your party. The next identity stays hidden until you choose to reveal it.</p><p v-else-if="revealStage==='identity'">The next character is ready to be revealed.</p><p v-else>No additional character is available right now.</p><div class="actions"><button @click="cancelReveal">Cancel</button><button v-if="revealStage==='warning'" class="primary" @click="consentReveal">Reveal character</button><button v-else-if="revealStage==='identity'" class="primary" @click="addLater">Reveal and add to playthrough</button></div></section></div>
-<div v-if="scalingOpen && scalingCharacter" class="modal-backdrop"><form class="modal" @submit.prevent="saveScaling"><h2>Weapon scaling</h2><p>Enter generic attributes and grades shown on the equipped weapon.</p><label v-for="a in ATTRIBUTES" :key="a">{{attributeLabels[a]}}<select v-model="scalingDraft[a]"><option value="">Not entered</option><option v-for="grade in ['D','C','B','A','S']" :key="grade">{{grade}}</option></select></label><div class="actions"><button type="button" @click="scalingCharacter=null;scalingOpen=false">Cancel</button><button class="primary">Save scaling</button></div></form></div>
-<div v-if="skillCharacter" class="modal-backdrop"><form class="modal" @submit.prevent="saveSkills"><h2>Skill setup: {{skillCharacter.name}}</h2><p>Record owned skills and unspent skill points. Set up later keeps personalized advice withheld.</p><label>Unspent skill points<input type="number" min="0" v-model.number="skillCharacter.skillPoints"></label><label v-if="skillCharacter.skillAcquisition==='learned'">Discovered skills, separated by commas<input v-model="manualSkills" aria-label="Discovered skills"></label><template v-else><button v-if="(SKILLS[skillCharacter.id] ?? []).some(skill => skill.storyGated)" type="button" @click="discoverSkills">I discovered a story skill</button><fieldset><legend>Unlocked skills</legend><label v-for="skill in (SKILLS[skillCharacter.id] ?? []).filter(skill => !skill.storyGated || (skillCharacter?.discoveredSkillIds ?? []).includes(skill.id))" :key="skill.id" class="check"><input type="checkbox" :value="skill.id" v-model="skillCharacter.unlockedSkills"> {{skill.name}}</label></fieldset></template><div class="actions"><button type="button" @click="skillCharacter=null">Set up later</button><button class="primary">Save skill setup</button></div></form></div>
-</main></template>
+  <main class="shell">
+    <p v-if="saveError" class="error" role="alert">{{ saveError }}</p>
+    <header>
+      <p class="eyebrow">EXPEDITION 33 · FIELD GUIDE</p>
+      <h1>Keep your build on course.</h1>
+      <p class="lede">
+        A quiet companion for recording real progress and choosing the next safe
+        step.
+      </p>
+    </header>
+    <SetupPanel
+      v-if="!state"
+      v-model:name="setupName"
+      :selected="selected"
+      :disabled="unreadableSave || !!saveError"
+      @update:selected="selected = $event"
+      @start="start"
+    /><template v-else-if="active"
+      ><nav class="bar">
+        <strong>{{ active.name }}</strong
+        ><span aria-live="polite">{{ notice }}</span>
+        <button class="link" @click="managementOpen=true">Playthrough menu</button>
+      </nav>
+      <section class="party">
+        <CharacterCard
+          v-for="c in active.characters.filter((x) => x.tracked)"
+          :key="c.id"
+          :character="c"
+          @update="beginSetup"
+          @advise="advise"
+          @confirm="confirm"
+          @remove="manageRemove"
+        />
+        <SkillPanel v-for="c in active.characters.filter((x) => x.tracked)" :key="`guidance-${c.id}`" :character="c" @update="updateGuidance" />
+      </section>
+      <button class="add" @click="openReveal">＋ Add a character</button>
+      <p class="research">
+        Guidance is based on recorded in-game progress. Initial defaults and
+        priorities are kept with the guide's research notes; recommendations are
+        editorial advice.
+      </p></template
+    >
+    <FocusDialog
+      v-if="setupCharacter"
+      :title="`Update ${setupCharacter.name}`"
+      @close="setupCharacter = null"
+      ><p>
+        Enter what is true in-game. This replaces the recorded inputs and clears
+        old advice.
+      </p>
+      <p v-if="formError" class="error" role="alert">{{ formError }}</p>
+      <form @submit.prevent="submitProgress">
+        <label
+          >Current level<input
+            type="number"
+            min="1"
+            max="99"
+            v-model.number="draft.level" /></label
+        ><label
+          >Available attribute points<input
+            type="number"
+            min="0"
+            v-model.number="draft.points"
+        /></label>
+        <div class="edit-grid">
+          <label v-for="a in ATTRIBUTES" :key="a"
+            >{{ attributeLabels[a]
+            }}<input
+              type="number"
+              min="0"
+              max="99"
+              v-model.number="draft.invested[a]"
+          /></label>
+        </div>
+        <div class="actions">
+          <button type="button" @click="setupCharacter = null">Cancel</button
+          ><button class="primary">Save progress</button>
+        </div>
+      </form></FocusDialog
+    >
+    <FocusDialog
+      v-if="revealStage"
+      title="Continue your expedition?"
+      @close="cancelReveal"
+      ><p v-if="revealStage === 'warning'">
+        Only continue if someone new has joined your party. The next identity
+        stays hidden until you choose to reveal it.
+      </p>
+      <p v-else-if="revealStage === 'identity'">
+        The next character is <strong>{{ revealedCandidate?.name }}</strong
+        >.
+      </p>
+      <p v-else>No additional character is available right now.</p>
+      <div class="actions">
+        <button @click="cancelReveal">Cancel</button
+        ><button
+          v-if="revealStage === 'warning'"
+          class="primary"
+          @click="consentReveal"
+        >
+          Reveal character</button
+        ><button
+          v-else-if="revealStage === 'identity'"
+          class="primary"
+          @click="addLater"
+        >
+          Add to playthrough
+        </button>
+      </div></FocusDialog
+    >
+    <FocusDialog v-if="managementOpen" title="Playthroughs" @close="managementOpen=false"><label>New playthrough name<input v-model="newName" aria-label="New playthrough name"></label><fieldset><legend>Initial characters for the new run</legend><label v-for="(d,key) in INITIAL_CHARACTERS" :key="key" class="check"><input type="checkbox" v-model="newSelected" :value="key"> {{d.name}}</label></fieldset><button class="primary" @click="manageCreate">Create independent playthrough</button><div class="run-list"><button v-for="p in state?.playthroughs" :key="p.id" @click="manageSwitch(p.id)">{{p.name}}</button></div><div v-if="removed.length"><button v-for="c in removed" :key="c.id" @click="manageRestore(c)">Restore {{c.name}}</button></div><button class="danger" @click="manageReset">Reset this playthrough</button></FocusDialog>
+  </main>
+</template>
 <style>
-:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#f6f1e8;background:#171717}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 20% 0,#3b2b28,transparent 45%),#171717;min-height:100vh}.shell{max-width:960px;margin:auto;padding:48px 22px 80px}header{max-width:650px;margin-bottom:32px}.eyebrow{font-size:11px;letter-spacing:.18em;color:#d5a477;margin:0 0 10px}.lede{font-size:18px;color:#c4bdb4;line-height:1.5}h1{font-size:clamp(34px,6vw,64px);line-height:.98;margin:0;letter-spacing:-.05em}h2{margin:0 0 12px}.card{background:#242322;border:1px solid #514942;border-radius:18px;padding:24px;box-shadow:0 15px 50px #0004}.setup{max-width:560px}label{display:grid;gap:7px;color:#cfc6bb;margin:16px 0}input{background:#171717;color:#fff;border:1px solid #655d55;border-radius:8px;padding:10px;font:inherit;width:100%}fieldset{border:1px solid #514942;border-radius:12px;margin:24px 0;padding:10px 16px}.check{display:flex;align-items:center;gap:10px}.check input{width:auto}.primary,button{border:1px solid #88705d;background:transparent;color:#fff;border-radius:9px;padding:10px 14px;font:inherit;cursor:pointer}.primary{background:#c77f4e;border-color:#e0a071;color:#1b1410}.bar{display:flex;align-items:center;gap:18px;margin-bottom:22px}.save-state{color:#b8d7b0;flex:1}.link{border:0;color:#d5a477}.party{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}.card-head{display:flex;justify-content:space-between}.level{color:#d5a477;font-weight:700}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:22px 0}.stats div{background:#171717;border-radius:7px;padding:8px 4px;text-align:center}.stats span{display:block;font-size:10px;color:#aaa}.advice{background:#32271f;padding:13px;border-radius:9px;line-height:1.5}.advice small{color:#d0c2b5}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}.points,.research{color:#aaa;font-size:13px}.add{display:block;width:100%;margin:22px 0;padding:16px;border:1px dashed #776452;background:transparent;color:#ddac7d;border-radius:13px}.modal-backdrop{position:fixed;inset:0;background:#000b;display:grid;place-items:center;padding:18px;z-index:2}.modal{background:#242322;border:1px solid #776452;border-radius:18px;padding:26px;max-width:520px;width:100%;max-height:90vh;overflow:auto}.edit-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.edit-grid label{margin:4px 0}.run-list{display:grid;gap:8px;margin:22px 0}.run-list button{text-align:left}.run-list .selected{border-color:#e0a071;background:#32271f}.removed{border-top:1px solid #514942;padding-top:16px;display:grid;gap:8px}.danger{border-color:#a76b63;color:#f0b1a7;margin-top:18px}.quiet{border:0;color:#d1a69b;padding-left:0}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(max-width:600px){.shell{padding:32px 15px}.stats{grid-template-columns:repeat(3,1fr)}.bar{align-items:flex-start;flex-wrap:wrap}.save-state{order:3;flex-basis:100%}}
+.shell {
+  max-width: 960px;
+  margin: auto;
+  padding: 48px 22px 80px;
+  color: #f6f1e8;
+  background: #171717;
+  min-height: 100vh;
+}
+.card {
+  background: #242322;
+  border: 1px solid #514942;
+  border-radius: 18px;
+  padding: 24px;
+}
+.party {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #000b;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  z-index: 2;
+}
+.modal {
+  background: #242322;
+  border: 1px solid #776452;
+  border-radius: 18px;
+  padding: 26px;
+  max-width: 520px;
+  width: 100%;
+}
+.error {
+  color: #ffb4a8;
+}
+button {
+  padding: 10px 14px;
+}
+.add {
+  display: block;
+  width: 100%;
+  margin: 22px 0;
+  padding: 16px;
+}
+label {
+  display: grid;
+  gap: 7px;
+  margin: 16px 0;
+}
+input {
+  padding: 10px;
+  width: 100%;
+}
+.edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
 </style>
