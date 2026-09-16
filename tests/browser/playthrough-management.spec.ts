@@ -1,8 +1,14 @@
 import { test, expect } from "@playwright/test";
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
+  await page.addStyleTag({
+    content: "astro-dev-toolbar { display: none !important; }",
+  });
   await page.evaluate(() => localStorage.clear());
   await page.reload();
+  await page.addStyleTag({
+    content: "astro-dev-toolbar { display: none !important; }",
+  });
 });
 test("creates independent runs and reloads the last selection", async ({
   page,
