@@ -25,13 +25,13 @@ export const SKILLS: Record<string, SkillRecord[]> = {
   lune: [
     { id: 'immolation', name: 'Immolation', cost: 0, starting: true },
     { id: 'ice-lance', name: 'Ice Lance', cost: 0, starting: true },
-    { id: 'wildfire', name: 'Wildfire', cost: 2 },
-    { id: 'thermal-transfer', name: 'Thermal Transfer', cost: 2 },
+    { id: 'wildfire', name: 'Wildfire', cost: 2, unsupportedPurchase: true },
+    { id: 'thermal-transfer', name: 'Thermal Transfer', cost: 2, unsupportedPurchase: true },
     { id: 'healing-light', name: 'Healing Light', cost: 1 },
-    { id: 'electrify', name: 'Electrify', cost: 1 },
-    { id: 'earth-rising', name: 'Earth Rising', cost: 1 },
-    { id: 'thunderfall', name: 'Thunderfall', cost: 1 },
-    { id: 'rebirth', name: 'Rebirth', cost: 4 },
+    { id: 'electrify', name: 'Electrify', cost: 1, unsupportedPurchase: true },
+    { id: 'earth-rising', name: 'Earth Rising', cost: 1, unsupportedPurchase: true },
+    { id: 'thunderfall', name: 'Thunderfall', cost: 1, unsupportedPurchase: true },
+    { id: 'rebirth', name: 'Rebirth', cost: 4, requires: ['healing-light'] },
     { id: 'fire-rage', name: 'Fire Rage', cost: 6 },
     { id: 'revitalization', name: 'Revitalization', cost: 6 },
     { id: 'storm-caller', name: 'Storm Caller', cost: 8 },
@@ -39,10 +39,10 @@ export const SKILLS: Record<string, SkillRecord[]> = {
     { id: 'crustal-crush', name: 'Crustal Crush', cost: 6 },
     { id: 'hell', name: 'Hell', cost: 10 },
     { id: 'terraquake', name: 'Terraquake', cost: 10 },
-    { id: 'mayhem', name: 'Mayhem', cost: 4 }
+    { id: 'mayhem', name: 'Mayhem', cost: 4, unsupportedPurchase: true }
   ],
   maelle: [
-    { id: 'maelle-degagement', name: 'Degagement', cost: 2 },
+    { id: 'maelle-degagement', name: 'Degagement', cost: 2, unsupportedPurchase: true },
     { id: 'maelle-spark', name: 'Spark', cost: 0, starting: true },
     { id: 'maelle-breaking-rules', name: 'Breaking Rules', cost: 4, requires: ['maelle-fleuret-fury'], unsupportedPurchase: true },
     { id: 'maelle-burning-canvas', name: 'Burning Canvas', cost: 6, storyGated: true, unsupportedPurchase: true },
@@ -56,9 +56,9 @@ export const SKILLS: Record<string, SkillRecord[]> = {
     { id: 'sciel-fortunes-fury', name: "Fortune's Fury", cost: 6, unsupportedPurchase: true }
   ],
   verso: [
-    { id: 'verso-assault-zero', name: 'Assault Zero', cost: 1, unsupportedPurchase: true },
-    { id: 'verso-ascending-assault', name: 'Ascending Assault', cost: 1, unsupportedPurchase: true },
-    { id: 'verso-blitz', name: 'Blitz', cost: 5, unsupportedPurchase: true },
+    { id: 'verso-assault-zero', name: 'Assault Zero', cost: 0, starting: true },
+    { id: 'verso-ascending-assault', name: 'Ascending Assault', cost: 4, unsupportedPurchase: true },
+    { id: 'verso-blitz', name: 'Blitz', cost: 2, unsupportedPurchase: true },
     { id: 'verso-perfect-break', name: 'Perfect Break', cost: 4, unsupportedPurchase: true },
     { id: 'verso-steeled-strike', name: 'Steeled Strike', cost: 10, unsupportedPurchase: true }
   ],
