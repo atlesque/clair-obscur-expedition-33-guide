@@ -1,12 +1,32 @@
 import { id } from './storage';
 import type { Character, Playthrough, SaveData } from './types';
 
+function cloneCharacter(character: Character): Character {
+  return {
+    ...character,
+    tracked: true,
+    invested: { ...character.invested },
+    pending: character.pending
+      ? {
+          ...character.pending,
+          base: { ...character.pending.base },
+          spend: { ...character.pending.spend },
+        }
+      : undefined,
+    unlockedSkills: character.unlockedSkills ? [...character.unlockedSkills] : undefined,
+    loadout: character.loadout ? [...character.loadout] : undefined,
+    scaling: character.scaling
+      ? { attributes: { ...character.scaling.attributes } }
+      : undefined,
+  };
+}
+
 /** The selected playthrough is the only record these operations ever mutate. */
 export function createPlaythrough(data: SaveData, name: string, characters: Character[] = []): SaveData {
   const playthrough: Playthrough = {
     id: id('playthrough'),
     name: name.trim() || 'My Expedition',
-    characters: characters.map((character) => ({ ...character, tracked: true })),
+    characters: characters.map(cloneCharacter),
     nextRevealIndex: 0,
     revision: 0,
   };

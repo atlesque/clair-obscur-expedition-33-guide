@@ -42,11 +42,11 @@ const active = computed(
     null,
 );
 const removed = computed(() => active.value?.characters.filter((c) => !c.tracked) ?? []);
-function manageSwitch(id0:string){if(!state.value)return;const before=snapshot();state.value=switchPlaythrough(state.value,id0);setupCharacter.value=null;revealStage.value=null;revealedCandidate.value=null;addingCandidate.value=false;freshSetup.value=false;managementOpen.value=false;if(!persist(before))managementOpen.value=true}
+function manageSwitch(id0:string){if(!state.value)return;const before=snapshot();state.value=switchPlaythrough(state.value,id0);if(persist(before)){setupCharacter.value=null;revealStage.value=null;revealedCandidate.value=null;addingCandidate.value=false;freshSetup.value=false;managementOpen.value=false}else managementOpen.value=true}
 function manageCreate(){if(!state.value||!newSelected.value.length)return;const before=snapshot();const chars=newSelected.value.map((key)=>{const d=INITIAL_CHARACTERS[key as keyof typeof INITIAL_CHARACTERS];return {id:key,name:d.name,level:1,invested:{...d.defaults},points:3,tracked:true,revealed:true}});state.value=createPlaythrough(state.value,newName.value,chars);newName.value="";managementOpen.value=false;if(!persist(before))managementOpen.value=true}
 function manageRemove(c:Character){if(!state.value||!active.value)return;const before=snapshot();const next=removeCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p)=>p.id===next.id?next:p);persist(before)}
-function manageRestore(c:Character){if(!state.value||!active.value)return;const before=snapshot();const next=restoreCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p)=>p.id===next.id?next:p);managementOpen.value=false;if(!persist(before))managementOpen.value=true}
-function manageReset(){if(!state.value||!active.value)return;const before=snapshot();state.value=resetPlaythrough(state.value,active.value.id);managementOpen.value=false;if(!persist(before))managementOpen.value=true}
+function manageRestore(c:Character){if(!state.value||!active.value)return;const before=snapshot();const next=restoreCharacter(active.value,c.id);state.value.playthroughs=state.value.playthroughs.map((p)=>p.id===next.id?next:p);if(persist(before)){setupCharacter.value=null;revealStage.value=null;revealedCandidate.value=null;addingCandidate.value=false;managementOpen.value=false}else managementOpen.value=true}
+function manageReset(){if(!state.value||!active.value)return;const before=snapshot();state.value=resetPlaythrough(state.value,active.value.id);if(persist(before)){setupCharacter.value=null;revealStage.value=null;revealedCandidate.value=null;addingCandidate.value=false;freshSetup.value=false;managementOpen.value=false}else managementOpen.value=true}
 function beginFreshSetup(){
   if (!active.value) return;
   freshSetup.value = true;
@@ -160,12 +160,11 @@ function submitProgress() {
   if (!active.value || !setupCharacter.value) return;
   try {
     const before = snapshot();
+    const adding = addingCandidate.value && !!revealedCandidate.value;
     const c = updateProgress({ ...setupCharacter.value }, draft.value);
-    if (addingCandidate.value && revealedCandidate.value) {
+    if (adding) {
       active.value.characters.push(c);
       active.value.nextRevealIndex++;
-      addingCandidate.value = false;
-      revealedCandidate.value = null;
     } else {
       const i = active.value.characters.findIndex(
         (x) => x.id === setupCharacter.value?.id,
@@ -173,7 +172,13 @@ function submitProgress() {
       active.value.characters[i] = c;
     }
     active.value.revision++;
-    if (persist(before)) setupCharacter.value = null;
+    if (persist(before)) {
+      setupCharacter.value = null;
+      if (adding) {
+        addingCandidate.value = false;
+        revealedCandidate.value = null;
+      }
+    }
     formError.value = "";
   } catch (e) {
     formError.value =
