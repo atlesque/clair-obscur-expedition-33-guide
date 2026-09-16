@@ -7,7 +7,8 @@ export function recommend(character: Character): Recommendation {
   while (left) {
     const candidates = ATTRIBUTES.filter(a => character.invested[a] + (spend[a] ?? 0) < 99);
     const attribute = candidates.sort((a,b) => {
-      const deficit = (a: keyof Attributes) => target[a] - (character.invested[a] + (spend[a] ?? 0)) / Math.max(1, character.invested[a] + (spend[a] ?? 0) + 1);
+      const total = ATTRIBUTES.reduce((sum, key) => sum + character.invested[key] + (spend[key] ?? 0), 0);
+      const deficit = (a: keyof Attributes) => target[a] * (total + 1) - (character.invested[a] + (spend[a] ?? 0));
       return deficit(b) - deficit(a);
     })[0];
     if (!attribute) break;
