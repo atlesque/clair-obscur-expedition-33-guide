@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref } from "vue";
 import {
+  CHARACTER_PORTRAITS,
   INITIAL_CHARACTERS,
   LATER_CHARACTERS,
   attributeLabels,
@@ -15,6 +16,7 @@ import {
 import { id, load, save } from "../domain/storage";
 import CharacterCard from "./CharacterCard.vue";
 import FocusDialog from "./FocusDialog.vue";
+import NumberStepper from "./NumberStepper.vue";
 import SetupPanel from "./SetupPanel.vue";
 import SkillPanel from "./SkillPanel.vue";
 import { createPlaythrough, removeCharacter, resetPlaythrough, restoreCharacter, switchPlaythrough } from "../domain/playthroughs";
@@ -34,32 +36,9 @@ const freshSetup = ref(false);
 const formError = ref("");
 const addingCandidate = ref(false);
 const revealedCandidate = ref<(typeof LATER_CHARACTERS)[number] | null>(null);
+const portraitFailed = ref<Record<string, boolean>>({});
 const draft = ref({ level: 1, points: 0, invested: emptyAttributes() });
 const managementOpen = ref(false); const newName = ref(""); const newSelected = ref<string[]>(["gustave", "lune"]);
-type ThemeMode = "auto" | "light" | "dark";
-const themeStorageKey = "expedition-33-theme";
-const themeMode = ref<ThemeMode>(readThemePreference());
-const themeLabel = computed(() => ({ auto: "Auto", light: "Light", dark: "Dark" }[themeMode.value]));
-const nextThemeLabel = computed(() => ({ auto: "Light", light: "Dark", dark: "Auto" }[themeMode.value]));
-const themeIcon = computed(() => ({ auto: "◐", light: "☼", dark: "◑" }[themeMode.value]));
-function readThemePreference(): ThemeMode {
-  if (typeof localStorage === "undefined") return "auto";
-  try {
-    const stored = localStorage.getItem(themeStorageKey);
-    return stored === "light" || stored === "dark" ? stored : "auto";
-  } catch { return "auto"; }
-}
-function applyTheme(mode: ThemeMode) {
-  if (typeof document === "undefined") return;
-  if (mode === "auto") delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = mode;
-  document.documentElement.style.colorScheme = mode === "auto" ? "light dark" : mode;
-  try { localStorage.setItem(themeStorageKey, mode); } catch { /* theme preference is optional */ }
-}
-function cycleTheme() {
-  themeMode.value = themeMode.value === "auto" ? "light" : themeMode.value === "light" ? "dark" : "auto";
-}
-watch(themeMode, applyTheme, { immediate: true });
 const active = computed(
   () =>
     state.value?.playthroughs.find((p) => p.id === state.value?.activeId) ??
@@ -78,6 +57,9 @@ const selectedCharacter = computed(
 );
 function selectCharacter(id0: string) {
   selectedCharacterId.value = id0;
+}
+function portraitFallback(id0: string) {
+  portraitFailed.value = { ...portraitFailed.value, [id0]: true };
 }
 function manageSwitch(id0:string){if(!state.value)return;const before=snapshot();state.value=switchPlaythrough(state.value,id0);if(persist(before)){setupCharacter.value=null;revealStage.value=null;revealedCandidate.value=null;addingCandidate.value=false;freshSetup.value=false;managementOpen.value=false}else managementOpen.value=true}
 function manageCreate(){if(!state.value||!newSelected.value.length)return;const before=snapshot();const chars=newSelected.value.map((key)=>{const d=INITIAL_CHARACTERS[key as keyof typeof INITIAL_CHARACTERS];return {id:key,name:d.name,level:1,invested:{...d.defaults},points:3,tracked:true,revealed:true}});state.value=createPlaythrough(state.value,newName.value,chars);newName.value="";managementOpen.value=false;if(!persist(before))managementOpen.value=true}
@@ -289,23 +271,6 @@ function cancelReveal() {
 </script>
 <template>
   <main class="shell">
-    <header class="utility-bar">
-      <div class="brand-lockup">
-        <strong>EXPEDITION 33 GUIDE</strong>
-      </div>
-      <div class="theme-control">
-        <button
-          class="theme-switch icon-button"
-          :class="`theme-${themeMode}`"
-          type="button"
-          :aria-label="`Theme: ${themeLabel}. Switch to ${nextThemeLabel}.`"
-          :title="`Theme: ${themeLabel}`"
-          @click="cycleTheme"
-        >
-          <span aria-hidden="true">{{ themeIcon }}</span>
-        </button>
-      </div>
-    </header>
     <p v-if="saveError" class="error notice-banner" role="alert">{{ saveError }}</p>
     <h1 class="sr-only">Expedition 33 leveling guide</h1>
     <nav v-if="active" class="bar" aria-label="Current playthrough">
@@ -343,7 +308,16 @@ function cancelReveal() {
           :aria-label="`Show ${c.name}`"
           @click="selectCharacter(c.id)"
         >
-          <span class="avatar" aria-hidden="true">{{ c.name.slice(0, 2).toUpperCase() }}</span>
+          <span class="avatar" aria-hidden="true">
+            <img
+              v-if="CHARACTER_PORTRAITS[c.id] && !portraitFailed[c.id]"
+              class="avatar-image"
+              :src="CHARACTER_PORTRAITS[c.id]"
+              alt=""
+              @error="portraitFallback(c.id)"
+            />
+            <span class="avatar-fallback">{{ c.name.slice(0, 2).toUpperCase() }}</span>
+          </span>
         </button>
         <button type="button" class="character-tab character-tab-add" aria-label="Add a character" @click="openReveal">
           <span class="avatar avatar-add" aria-hidden="true">＋</span>
@@ -374,27 +348,16 @@ function cancelReveal() {
       </p>
       <p v-if="formError" class="error" role="alert">{{ formError }}</p>
       <form novalidate @submit.prevent="submitProgress">
-        <label
-          >Current level<input
-            type="number"
-            min="1"
-            max="99"
-            v-model.number="draft.level" /></label
-        ><label
-          >Available attribute points<input
-            type="number"
-            min="0"
-            v-model.number="draft.points"
-        /></label>
+        <NumberStepper v-model="draft.level" label="Current level" :min="1" :max="99" />
+        <NumberStepper v-model="draft.points" label="Available attribute points" />
         <div class="edit-grid">
-          <label v-for="a in ATTRIBUTES" :key="a"
-            >{{ attributeLabels[a]
-            }}<input
-              type="number"
-              min="0"
-              max="99"
-              v-model.number="draft.invested[a]"
-          /></label>
+          <NumberStepper
+            v-for="a in ATTRIBUTES"
+            :key="a"
+            v-model="draft.invested[a]"
+            :label="attributeLabels[a]"
+            :max="99"
+          />
         </div>
         <div class="actions">
           <button type="button" @click="cancelSetup">Cancel</button
@@ -436,7 +399,7 @@ function cancelReveal() {
   </main>
 </template>
 <style>
-:root { color-scheme: light dark; --ink:#f5f2ec; --ink-raised:#fffdf8; --ink-soft:#ebe6dc; --paper:#252a26; --paper-ink:#252a26; --setup-surface:#ebe5da; --setup-muted:#625e56; --line:#c7c1b6; --line-light:#d9d3c8; --muted:#59615b; --rust:#a84c2f; --rust-dark:#873a25; --rust-hover:#bd6040; --moss:#46664f; --danger:#9d3e2f; --accent-ink:#fff9ef; --display:Georgia,'Times New Roman',serif; --body:'Avenir Next',Avenir,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+:root { color-scheme: light dark; --ink:#f5f2ec; --ink-raised:#fffdf8; --ink-soft:#ebe6dc; --paper:#252a26; --paper-ink:#252a26; --setup-surface:#ebe5da; --setup-muted:#625e56; --line:#c7c1b6; --line-light:#d9d3c8; --muted:#59615b; --rust:#a84c2f; --rust-dark:#873a25; --rust-hover:#bd6040; --moss:#46664f; --danger:#9d3e2f; --accent-ink:#fff9ef; --display:var(--expedition-display); --body:var(--expedition-body); }
 :root[data-theme='light'] { color-scheme:light; }
 :root[data-theme='dark'] { color-scheme:dark; --ink:#151716; --ink-raised:#1d211f; --ink-soft:#252a27; --paper:#f0eadf; --paper-ink:#f0eadf; --setup-surface:#202521; --setup-muted:#b7b3a8; --line:#46504a; --line-light:#536057; --muted:#b7b3a8; --rust:#c46b45; --rust-dark:#8f422c; --rust-hover:#d8835b; --moss:#8da17d; --danger:#efaa99; --accent-ink:#fff9ef; }
 @media (prefers-color-scheme:dark) { :root:not([data-theme='light']) { --ink:#151716; --ink-raised:#1d211f; --ink-soft:#252a27; --paper:#f0eadf; --paper-ink:#f0eadf; --setup-surface:#202521; --setup-muted:#b7b3a8; --line:#46504a; --line-light:#536057; --muted:#b7b3a8; --rust:#c46b45; --rust-dark:#8f422c; --rust-hover:#d8835b; --moss:#8da17d; --danger:#efaa99; --accent-ink:#fff9ef; } }
@@ -447,16 +410,7 @@ button,input,select { font:inherit; }
 button { cursor:pointer; }
 button:focus-visible,input:focus-visible,select:focus-visible { outline:2px solid var(--moss); outline-offset:3px; }
 button:disabled { cursor:not-allowed; opacity:.5; }
-.shell { width:min(100%,1360px); min-height:100svh; margin:auto; padding:clamp(22px,4vw,54px) clamp(18px,6vw,90px) 84px; background:var(--ink); }
-.utility-bar { display:flex; align-items:center; justify-content:space-between; gap:24px; padding-bottom:18px; border-bottom:1px solid var(--line); }
-.brand-lockup { min-width:0; }
-.brand-lockup strong { display:block; overflow:hidden; color:var(--paper); font-family:var(--display); font-size:clamp(.96rem,2.5vw,1.08rem); font-weight:400; letter-spacing:.015em; text-overflow:ellipsis; white-space:nowrap; }
-.theme-control { display:flex; align-items:center; gap:10px; }
-.theme-switch { width:40px; min-height:40px; padding:0; border:1px solid var(--line); background:transparent; color:var(--paper); font-size:1.15rem; line-height:1; }
-.theme-switch:hover { border-color:var(--rust); }
-.theme-switch.theme-auto { color:var(--moss); }
-.theme-switch.theme-light { color:var(--rust); }
-.theme-switch.theme-dark { color:var(--paper); }
+.shell { width:min(100%,1360px); min-height:100svh; margin:auto; padding:clamp(14px,2vw,28px) clamp(18px,6vw,90px) 84px; background:var(--ink); }
 .shell h1,.shell h2,.shell h3,.shell p { margin-top:0; }
 .shell h1 { margin-bottom:18px; font-family:var(--display); font-size:clamp(3rem,7vw,6.8rem); font-weight:400; letter-spacing:-.055em; line-height:.88; }
 .shell h1 em { color:var(--rust); font-style:italic; }
@@ -467,7 +421,7 @@ button:disabled { cursor:not-allowed; opacity:.5; }
 .notice-banner { margin:0 0 22px; padding:12px 14px; border:1px solid var(--rust); color:var(--danger); font-size:.85rem; }
 .save-notice { margin:12px 0 0; border-color:var(--line); color:var(--moss); }
 .error { color:var(--danger); }
-.bar { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:22px 0 18px; border-bottom:1px solid var(--line); }
+.bar { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-top:0; padding:10px 0 18px; border-bottom:1px solid var(--line); }
 .bar-leading { min-width:0; }
 .bar strong { overflow:hidden; color:var(--paper); font-family:var(--display); font-size:1.2rem; font-weight:400; text-overflow:ellipsis; white-space:nowrap; }
 .bar-actions { display:flex; align-items:center; gap:22px; }
@@ -482,7 +436,7 @@ button:disabled { cursor:not-allowed; opacity:.5; }
 .setup-form { min-width:0; }
 .setup-panel label { display:grid; gap:8px; margin:0 0 22px; font-size:.82rem; }
 .setup-panel>.setup-form>label:first-child { font-size:.65rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
-.setup-panel input:not([type='checkbox']) { width:100%; padding:12px 0; border:0; border-bottom:1px solid var(--line); border-radius:0; background:transparent; color:var(--paper-ink); font-family:var(--display); font-size:1.4rem; outline:none; }
+.setup-panel input:not([type='checkbox']) { width:100%; padding:12px 0; border:0; border-bottom:1px solid var(--line); border-radius:0; background:transparent; color:var(--paper-ink); font-family:var(--body); font-size:1.4rem; outline:none; }
 .setup-panel input:not([type='checkbox']):focus { border-color:var(--rust-dark); }
 .character-picker { margin:26px 0; padding:0; border:0; }
 .character-picker legend { width:100%; margin-bottom:10px; padding:0 0 10px; border-bottom:1px solid var(--line-light); font-size:.65rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
@@ -507,13 +461,19 @@ button:disabled { cursor:not-allowed; opacity:.5; }
 .character-tab { display:flex; align-items:center; justify-content:center; min-width:72px; min-height:74px; padding:8px 10px 12px; border:0; border-bottom:2px solid transparent; background:transparent; color:var(--muted); text-align:left; }
 .character-tab:hover { color:var(--paper); }
 .character-tab.is-active { border-bottom-color:var(--rust); color:var(--paper); }
-.avatar { display:grid; place-items:center; width:50px; height:50px; flex:0 0 50px; border:1px solid var(--line); border-radius:50%; background:var(--ink-soft); color:var(--paper); font-family:var(--display); font-size:1.05rem; }
+.avatar { position:relative; display:grid; place-items:center; width:50px; height:50px; flex:0 0 50px; overflow:hidden; border:1px solid var(--line); border-radius:50%; background:var(--ink-soft); color:var(--paper); font-family:var(--body); font-size:1.05rem; }
+.avatar-image { position:absolute; inset:0; z-index:1; width:100%; height:100%; object-fit:cover; object-position:center 18%; }
+.avatar-fallback { position:relative; z-index:0; }
 .character-tab.is-active .avatar { border-color:var(--rust); background:var(--rust); color:var(--accent-ink); }
 .character-tab-add .avatar { border-style:dashed; background:transparent; color:var(--rust); }
 .party { display:block; margin-top:34px; }
 .character-lane { min-width:0; }
 .card { padding:26px; border:1px solid var(--line); border-radius:0; background:var(--ink-raised); }
 .character { border-top:3px solid var(--rust); }
+.character-layout { display:grid; gap:28px; }
+.character-primary,.character-secondary { min-width:0; }
+.character-secondary { display:flex; flex-direction:column; }
+.character-secondary .card-head-actions { justify-content:space-between; }
 .card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
 .card-head-actions { display:flex; align-items:flex-start; gap:12px; }
 .character-menu { position:relative; }
@@ -521,17 +481,18 @@ button:disabled { cursor:not-allowed; opacity:.5; }
 .more-button:hover { border-color:var(--line); color:var(--paper); }
 .character-popover { position:absolute; top:calc(100% + 8px); right:0; z-index:1; min-width:146px; padding:5px; border:1px solid var(--line); background:var(--ink-raised); box-shadow:0 8px 18px rgba(15,18,16,.12); }
 .character-popover button { width:100%; min-height:34px; padding:8px 10px; border:0; text-align:left; }
-.card-head .eyebrow { margin-bottom:12px; color:var(--moss); }
 .card-head h2 { margin-bottom:0; }
 .level { display:grid; gap:2px; justify-items:end; color:var(--rust); font-size:.64rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
 .level::after { content:'CURRENT'; color:var(--muted); font-size:.5rem; }
-.stats { display:grid; gap:0; margin:28px 0 20px; }
+.stats { display:grid; gap:0; width:min(100%,360px); margin:28px 0 20px; }
 .stats div { display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; min-width:0; padding:9px 0; }
 .stats span { color:var(--muted); font-size:.62rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; }
-.stats b { color:var(--paper); font-family:var(--display); font-size:1.15rem; font-weight:400; }
+.stats b { color:var(--paper); font-family:var(--body); font-size:1.15rem; font-weight:400; }
 .points { margin:0; color:var(--moss); font-size:.65rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
 .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
 .actions button { font-size:.72rem; }
+.character-secondary .actions { display:grid; grid-template-columns:1fr; margin-top:32px; }
+.character-secondary .actions button { width:100%; }
 .quiet { border-color:transparent; color:var(--muted); }
 .quiet:hover { color:var(--danger); }
 .advice { margin:22px 0 0; padding:13px 14px; border-left:2px solid var(--rust); background:var(--ink-soft); color:var(--paper); font-size:.82rem; line-height:1.5; }
@@ -547,16 +508,32 @@ button:disabled { cursor:not-allowed; opacity:.5; }
 .guidance-tools p { margin:12px 0; overflow-wrap:anywhere; color:var(--muted); font-size:.78rem; line-height:1.5; }
 .guidance-tools p button { margin-left:8px; min-height:31px; padding:6px 9px; }
 .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
-.modal-backdrop { position:fixed; inset:0; z-index:2; display:grid; place-items:center; padding:18px; background:rgba(10,12,11,.84); }
-.modal { width:min(100%,560px); max-height:calc(100dvh - 36px); overflow:auto; padding:clamp(22px,4vw,38px); border:1px solid var(--rust); border-radius:0; background:var(--ink-raised); color:var(--paper); }
+.modal-backdrop { position:fixed; inset:var(--sl-nav-height,3.5rem) 0 0; z-index:1000; display:grid; place-items:start center; padding:16px; overflow:auto; overscroll-behavior:contain; background:rgba(10,12,11,.84); }
+.modal { width:min(100%,560px); max-height:calc(100dvh - var(--sl-nav-height,3.5rem) - 32px); overflow:auto; padding:clamp(22px,4vw,38px); border:1px solid var(--rust); border-radius:0; background:var(--ink-raised); color:var(--paper); }
 .modal h2 { padding-bottom:16px; border-bottom:1px solid var(--line); }
 .modal p { color:var(--muted); font-size:.88rem; line-height:1.55; }
 .modal label { display:grid; gap:8px; margin:16px 0; color:var(--paper); font-size:.82rem; }
+.stepper-field { min-width:0; }
+.stepper-label { display:block; }
+.stepper-control { display:grid; grid-template-columns:48px minmax(0,1fr) 48px; min-height:50px; border:1px solid var(--line); background:var(--ink); }
+.stepper-control button { display:grid; place-items:center; min-height:48px; padding:0; border:0; border-radius:0; background:transparent; color:var(--paper); font-size:1.35rem; line-height:1; }
+.stepper-control button:first-child { border-inline-end:1px solid var(--line); }
+.stepper-control button:last-child { border-inline-start:1px solid var(--line); }
+.stepper-control button:hover:not(:disabled) { background:var(--ink-soft); color:var(--rust); }
+.stepper-control button:disabled { color:var(--muted); opacity:.45; }
+.stepper-control input { min-width:0; width:100%; min-height:48px; padding:10px 8px; border:0!important; border-radius:0; background:transparent!important; color:var(--paper)!important; font-family:var(--body); font-size:1rem; font-variant-numeric:tabular-nums; outline:none; text-align:center; }
+.setup-panel .stepper-control input { padding:10px 8px; font-size:1rem; }
+.stepper-control input:focus { box-shadow:inset 0 0 0 2px var(--moss); }
+.stepper-control input::-webkit-inner-spin-button,.stepper-control input::-webkit-outer-spin-button { margin:0; appearance:none; }
+.stepper-control input[type='number'] { -moz-appearance:textfield; }
+.edit-grid { display:grid; gap:0 18px; }
 .modal input,.modal select { width:100%; padding:10px; border:1px solid var(--line); border-radius:0; background:var(--ink); color:var(--paper); }
 .modal fieldset { margin:22px 0; padding:14px; border:1px solid var(--line); }
 .modal legend { padding:0 6px; color:var(--moss); font-size:.63rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
 .modal .actions { border-top:1px solid var(--line); padding-top:18px; }
 .danger { border-color:var(--danger); color:var(--danger); }
+@media (min-width:760px) { .character-layout { grid-template-columns:minmax(0,1.2fr) minmax(220px,.8fr); gap:clamp(28px,5vw,72px); } .character-secondary { padding-left:clamp(24px,4vw,48px); border-left:1px solid var(--line); } }
+@media (max-width:759px) { .character-secondary { margin-top:28px; padding-top:22px; border-top:1px solid var(--line); } }
 @media (max-width:680px) { .shell { padding:20px 16px 58px; } .theme-switch { width:38px; min-height:38px; } .bar { gap:14px; } .bar-actions { margin-top:0; } .character-tabs { margin-top:24px; } .setup-panel { display:block; margin-top:28px; padding:24px 18px; } .party { margin-top:28px; } .card { padding:20px 18px; } .guidance-actions { display:grid; grid-template-columns:1fr 1fr; } .guidance-actions button { width:100%; } }
 @media (max-width:420px) { .shell h1 { font-size:3.5rem; } .bar { gap:10px; } .bar strong { font-size:1.05rem; } .bar-actions { display:flex; gap:10px; } .guidance-actions { grid-template-columns:1fr; } }
 </style>

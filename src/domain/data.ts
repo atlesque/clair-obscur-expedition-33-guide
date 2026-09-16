@@ -4,6 +4,10 @@ export const INITIAL_CHARACTERS: Record<'gustave'|'lune', {name:string; defaults
   gustave: { name: 'Gustave', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'In-game level-one character screen (verified locally; editorial priorities are separate).' },
   lune: { name: 'Lune', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'In-game level-one character screen (verified locally; editorial priorities are separate).' }
 };
+export const CHARACTER_PORTRAITS: Record<string, string> = {
+  gustave: 'https://static.wixstatic.com/media/98aef2_d21a46be1f56485b88e9270477f79683~mv2.png/v1/crop/x_8%2Cy_4%2Cw_489%2Ch_717/fill/w_494%2Ch_724%2Cal_c%2Clg_1%2Cq_85%2Cenc_avif%2Cquality_auto/Gustave_edited.png',
+  lune: 'https://static.wixstatic.com/media/98aef2_a4e45142853b44f192f94f050a15131c~mv2.png/v1/crop/x_152%2Cy_0%2Cw_346%2Ch_724/fill/w_346%2Ch_724%2Cal_c%2Cq_85%2Cenc_avif%2Cquality_auto/Lune_edited.png',
+};
 export const LATER_CHARACTERS: {id: CharacterId; name: string; defaults: Attributes; source: string}[] = [
   { id: 'maelle', name: 'Maelle', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'Source-backed character guide; verify level-one screen before publication.' },
   { id: 'sciel', name: 'Sciel', defaults: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, source: 'Source-backed character guide; verify level-one screen before publication.' },

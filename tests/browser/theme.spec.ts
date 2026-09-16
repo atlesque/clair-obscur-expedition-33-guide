@@ -7,23 +7,22 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('cycles auto, light, and dark themes and remembers the choice', async ({ page }) => {
-  const theme = page.getByRole('button', { name: /Theme:/ });
+  const theme = page.getByRole('combobox', { name: 'Select theme' });
 
-  await expect(theme).toHaveAccessibleName('Theme: Auto. Switch to Light.');
-  await theme.click();
-  await expect(theme).toHaveAccessibleName('Theme: Light. Switch to Dark.');
+  await expect(theme).toHaveValue('auto');
+  await theme.selectOption('light');
+  await expect(theme).toHaveValue('light');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(245, 242, 236)');
 
-  await theme.click();
-  await expect(theme).toHaveAccessibleName('Theme: Dark. Switch to Auto.');
+  await theme.selectOption('dark');
+  await expect(theme).toHaveValue('dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(21, 23, 22)');
 
   await page.reload();
-  await expect(page.getByRole('button', { name: /Theme: Dark/ })).toBeVisible();
+  await expect(page.getByRole('combobox', { name: 'Select theme' })).toHaveValue('dark');
 
-  await page.getByRole('button', { name: /Theme: Dark/ }).click();
-  await expect(page.locator('html')).not.toHaveAttribute('data-theme');
-  await expect(page.getByRole('button', { name: /Theme: Auto/ })).toBeVisible();
+  await page.getByRole('combobox', { name: 'Select theme' }).selectOption('auto');
+  await expect(page.getByRole('combobox', { name: 'Select theme' })).toHaveValue('auto');
 });

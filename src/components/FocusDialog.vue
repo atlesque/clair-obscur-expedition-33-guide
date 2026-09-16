@@ -13,8 +13,11 @@ const keydown = (event: KeyboardEvent) => {
   const next = focusable[(index + (event.shiftKey ? -1 : 1) + focusable.length) % focusable.length];
   event.preventDefault(); next.focus();
 };
+function closeOnBackdrop(event: MouseEvent) {
+  if (event.target === event.currentTarget) emit('close');
+}
 onMounted(async () => { previous = document.activeElement as HTMLElement; document.querySelector('main')?.setAttribute('inert', ''); window.addEventListener('keydown', keydown); await nextTick(); root.value?.querySelector<HTMLElement>('input,button')?.focus(); });
 onUnmounted(() => { window.removeEventListener('keydown', keydown); document.querySelector('main')?.removeAttribute('inert'); previous?.focus(); });
 </script>
-<template><Teleport to="body"><div class="modal-backdrop"><section ref="root" class="modal" role="dialog" aria-modal="true" :aria-label="props.title"><h2>{{ props.title }}</h2><slot /><div class="actions"><slot name="actions" /></div></section></div></Teleport></template>
-<style>.modal{color:var(--paper,#f0eadf);max-height:calc(100dvh - 36px);overflow:auto;box-sizing:border-box}.modal input,.modal select{color:var(--paper,#f0eadf);background:var(--ink,#151716);border:1px solid var(--line,#46504a)}.modal button{color:var(--paper,#f0eadf);background:transparent;border:1px solid var(--line,#46504a)}.modal .primary{background:var(--rust,#c46b45);color:var(--accent-ink,#fff9ef)}</style>
+<template><Teleport to="body"><div class="modal-backdrop" @click="closeOnBackdrop"><section ref="root" class="modal" role="dialog" aria-modal="true" :aria-label="props.title"><h2>{{ props.title }}</h2><slot /><div class="actions"><slot name="actions" /></div></section></div></Teleport></template>
+<style>.modal{color:var(--paper,#f0eadf);box-sizing:border-box}.modal input,.modal select{color:var(--paper,#f0eadf);background:var(--ink,#151716);border:1px solid var(--line,#46504a)}.modal button{color:var(--paper,#f0eadf);background:transparent;border:1px solid var(--line,#46504a)}.modal .primary{background:var(--rust,#c46b45);color:var(--accent-ink,#fff9ef)}</style>
