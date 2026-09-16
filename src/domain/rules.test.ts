@@ -42,4 +42,14 @@ describe('public progression guidance', () => {
     expect(loadout.loadout).toEqual(['learned-b', 'unknown', 'learned-a']);
     expect(suggestLoadout(loadout)).toEqual(['learned-a', 'learned-b', 'unknown']);
   });
+
+  it('never treats a starting skill as an SP purchase', () => {
+    const current = character({ skillSetupComplete: true, skillPoints: 2, unlockedSkills: [] });
+    expect(recommendSkill(current)?.skillId).toBe('marking-shot');
+  });
+
+  it('withholds later purchases whose prerequisite evidence is incomplete', () => {
+    const current = character({ id: 'verso', skillSetupComplete: true, skillPoints: 10, unlockedSkills: [] });
+    expect(recommendSkill(current)?.save).toBe(true);
+  });
 });
