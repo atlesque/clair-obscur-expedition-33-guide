@@ -1,6 +1,7 @@
 import { ATTRIBUTES, cloneAttributes } from './types';
 import type { Attributes, Character, Recommendation } from './types';
-const weights = (character: Character): Record<keyof Attributes,number> => character.id === 'lune' ? {vitality:0.4,might:0.2,agility:0.2,defence:0.1,luck:0.1} : {vitality:0.4,might:0.3,agility:0.15,defence:0.1,luck:0.05};
+import { ATTRIBUTE_PRIORITIES } from './data';
+const weights = (character: Character): Record<keyof Attributes, number> => (ATTRIBUTE_PRIORITIES[character.id as keyof typeof ATTRIBUTE_PRIORITIES] ?? ATTRIBUTE_PRIORITIES.default).weights;
 export function recommend(character: Character): Recommendation {
   const spend: Partial<Attributes> = {}; let left = character.points; const target=weights(character);
   while (left) {
