@@ -40,5 +40,28 @@ export const SKILLS: Record<string, SkillRecord[]> = {
     { id: 'hell', name: 'Hell', cost: 10 },
     { id: 'terraquake', name: 'Terraquake', cost: 10 },
     { id: 'mayhem', name: 'Mayhem', cost: 4 }
-  ]
+  ],
+  maelle: [
+    { id: 'maelle-degagement', name: 'Degagement', cost: 2 },
+    { id: 'maelle-spark', name: 'Spark', cost: 1 },
+    { id: 'maelle-breaking-rules', name: 'Breaking Rules', cost: 4 },
+    { id: 'maelle-burning-canvas', name: 'Burning Canvas', cost: 6, storyGated: true },
+    { id: 'maelle-fleuret-fury', name: 'Fleuret Fury', cost: 2 }
+  ],
+  sciel: [
+    { id: 'sciel-dark-cleansing', name: 'Dark Cleansing', cost: 2 },
+    { id: 'sciel-firing-shadow', name: 'Firing Shadow', cost: 2 },
+    { id: 'sciel-bad-omen', name: 'Bad Omen', cost: 4 },
+    { id: 'sciel-dark-wave', name: 'Dark Wave', cost: 10 },
+    { id: 'sciel-fortunes-fury', name: "Fortune's Fury", cost: 6 }
+  ],
+  verso: [
+    { id: 'verso-assault-zero', name: 'Assault Zero', cost: 1 },
+    { id: 'verso-ascending-assault', name: 'Ascending Assault', cost: 1 },
+    { id: 'verso-blitz', name: 'Blitz', cost: 5 },
+    { id: 'verso-perfect-break', name: 'Perfect Break', cost: 4 },
+    { id: 'verso-steeled-strike', name: 'Steeled Strike', cost: 1 }
+  ],
+  // This character has no ordinary SP tree; learned skills are entered after discovery.
+  monoco: []
 };

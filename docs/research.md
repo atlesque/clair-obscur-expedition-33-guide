@@ -7,3 +7,9 @@ The public guide uses only generic attribute labels and does not fetch these pag
 - [Alucare: character guide](https://www.alucare.fr/en/clair-obscur-expedition-33-personnages-guide/), which identifies the addable character set and must be used alongside in-game screens for exact invested-point defaults.
 
 Combat statistics are not silently converted into invested attributes. The initial fixture values remain a release gate until an in-game allocation screenshot is transcribed. Later-character names are kept inside the consent-gated data map and are never rendered before reveal.
+
+Skill costs and visible tree entries are transcribed from the Gamer Guides databases. AP is the in-battle action cost; SP is the separate unlock balance recorded by this guide. The catalog includes only entries whose unlock cost is exposed by the sources. Prerequisite edges and story-only visibility remain unknown where the sources do not expose them, so no guessed edge or spoiler is rendered. One later character learns skills through discovered encounters rather than the ordinary SP tree; the UI records those discoveries without inventing an SP purchase.
+
+- [Gamer Guides skill database](https://earth.gamerguides.com/clair-obscur-expedition-33/database/skills/maelle)
+- [Gamer Guides character skill guide](https://www.gamerguides.com/clair-obscur-expedition-33/guide/characters/playable/maelle-guide-best-skills-and-weapons)
+- [Interface In Game skill-tree screenshot](https://interfaceingame.com/screenshots/clair-obscur-expedition-33-skill-tree/)
