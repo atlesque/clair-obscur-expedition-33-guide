@@ -5,16 +5,19 @@ import Message from 'primevue/message';
 import Tag from 'primevue/tag';
 import { Zap } from '@lucide/vue';
 import { ATTRIBUTES } from '../domain/types';
-import { attributeLabels } from '../domain/data';
+import { attributeLabels, characterAvatar } from '../domain/data';
 import type { Character } from '../domain/types';
+import { computed } from 'vue';
 
-defineProps<{ character: Character }>();
+const props = defineProps<{ character: Character }>();
 defineEmits<{
   advise: [character: Character];
   update: [character: Character];
   confirm: [character: Character];
   dismiss: [character: Character];
 }>();
+
+const avatarSrc = computed(() => characterAvatar(props.character.id));
 </script>
 
 <template>
@@ -22,9 +25,11 @@ defineEmits<{
     <template #content>
       <div class="character-card__inner">
         <div class="character-card__head">
-          <div>
-            <div class="character-card__index">Entry / {{ character.id === 'gustave' ? '01' : character.id === 'lune' ? '02' : '—' }}</div>
+          <div class="character-card__identity">
+            <img class="character-avatar" :src="avatarSrc" :alt="`${character.name} avatar`" width="64" height="64" />
+            <div>
             <h2>{{ character.name }}</h2>
+            </div>
           </div>
           <Tag :value="`LV ${character.level}`" class="level-tag" />
         </div>

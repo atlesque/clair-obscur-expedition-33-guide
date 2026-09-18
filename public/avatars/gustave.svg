@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title">
+  <title>Gustave avatar</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d88955" />
+      <stop offset="1" stop-color="#7d342a" />
+    </linearGradient>
+  </defs>
+  <circle cx="80" cy="80" r="80" fill="url(#bg)" />
+  <path d="M28 160c3-30 22-49 52-49s49 19 52 49" fill="#172329" />
+  <path d="M57 94c3 11 12 18 23 18s20-7 23-18V77H57z" fill="#d8926b" />
+  <path d="M51 58c0-24 13-39 31-39 24 0 35 18 30 47-6-11-17-18-32-18-10 0-19 4-29 10z" fill="#1a252a" />
+  <path d="M56 53c3 25 13 37 25 37 13 0 23-12 25-37-8 7-18 10-29 10-8 0-15-3-21-10z" fill="#e2a078" />
+  <path d="M61 62c5 3 10 4 16 4 10 0 18-3 25-9" fill="none" stroke="#934c2d" stroke-width="3" stroke-linecap="round" />
+  <circle cx="71" cy="68" r="2.5" fill="#172329" />
+  <circle cx="91" cy="68" r="2.5" fill="#172329" />
+  <path d="M74 79c4 3 8 3 12 0" fill="none" stroke="#934c2d" stroke-width="2.5" stroke-linecap="round" />
+  <path d="M56 116l24 18 24-18 12 44H44z" fill="#d0d4ce" opacity=".9" />
+</svg>

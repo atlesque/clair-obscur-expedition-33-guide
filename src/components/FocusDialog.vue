@@ -39,14 +39,14 @@ onUnmounted(() => previous?.focus());
 </template>
 
 <style>
-.field-dialog.p-dialog { overflow: hidden; border: 0; border-radius: 2px; background: var(--paper); color: var(--ink); box-shadow: 14px 18px 0 rgba(0,0,0,.22); }
-.field-dialog .p-dialog-header { padding: 22px 25px 13px; background: var(--paper); color: var(--ink); font-family: var(--display); font-size: 1.8rem; font-weight: 400; letter-spacing: -.05em; }
+.field-dialog.p-dialog { overflow: hidden; border: 0; border-radius: 2px; background: var(--card-bg); color: var(--card-fg); box-shadow: 14px 18px 0 rgba(0,0,0,.22); }
+.field-dialog .p-dialog-header { padding: 22px 25px 13px; background: var(--card-bg); color: var(--card-fg); font-family: var(--display); font-size: 1.8rem; font-weight: 400; letter-spacing: -.05em; }
 .field-dialog .p-dialog-header-actions { gap: 4px; }
 .field-dialog .p-dialog-header-icon { width: 34px; height: 34px; border-radius: 2px; color: #756d63; }
 .field-dialog .p-dialog-header-icon:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
-.field-dialog .p-dialog-content { padding: 4px 25px 25px; background: var(--paper); color: var(--ink); }
+.field-dialog .p-dialog-content { padding: 4px 25px 25px; background: var(--card-bg); color: var(--card-fg); }
 .field-dialog .p-inputnumber, .field-dialog .p-inputtext { width: 100%; }
-.field-dialog .p-inputnumber-input, .field-dialog .p-inputtext { border-color: rgba(17,24,30,.22); border-radius: 2px; color: var(--ink); }
+.field-dialog .p-inputnumber-input, .field-dialog .p-inputtext { border-color: var(--card-line); border-radius: 2px; color: var(--card-fg); }
 .field-dialog .p-inputnumber-input:enabled:focus, .field-dialog .p-inputtext:enabled:focus { border-color: var(--copper); box-shadow: 0 0 0 1px var(--copper); }
 .field-dialog .p-button { border-radius: 2px; }
 .field-dialog .p-button:not(.p-button-text):not(.p-button-outlined) { background: var(--copper); border-color: var(--copper); color: #21130c; }
