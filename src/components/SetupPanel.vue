@@ -140,11 +140,12 @@ watch(
 .setup-panel__intro p { max-width: 470px; margin: 0; color: var(--card-muted); line-height: 1.55; }
 .setup-field { display: grid; gap: 8px; margin: 15px 0; color: var(--card-muted); font-size: .77rem; font-weight: 700; letter-spacing: .02em; }
 .setup-field .p-inputtext, .setup-field .p-inputnumber { width: 100%; }
-.setup-card .p-inputtext, .setup-card .p-inputnumber-input { border-color: var(--card-line); border-radius: 2px; color: var(--card-fg); }
+.setup-card .p-inputtext, .setup-card .p-inputnumber-input { border-color: var(--card-line); border-radius: 2px; background: var(--card-control-bg); color: var(--card-control-fg); }
+.setup-card .p-inputtext::placeholder, .setup-card .p-inputnumber-input::placeholder { color: var(--card-control-placeholder); opacity: 1; }
 .setup-card .p-inputtext:enabled:focus, .setup-card .p-inputnumber-input:enabled:focus { border-color: var(--copper); box-shadow: 0 0 0 1px var(--copper); }
 .initial-characters.p-fieldset { margin: 28px 0 20px; border: 1px solid var(--card-line); border-radius: 2px; }
 .initial-characters .p-fieldset-legend { padding: 0 10px; border: 0; border-radius: 0; background: var(--card-bg); color: var(--card-fg); font-family: var(--display); font-size: 1.25rem; font-weight: 400; }
-.initial-characters .p-fieldset-content { padding: 8px 16px 15px; }
+.initial-characters .p-fieldset-content { padding: 8px 16px 15px; background: var(--card-control-bg); color: var(--card-control-fg); }
 .fieldset-help { margin: 0 0 16px; color: var(--card-muted); font-size: .78rem; line-height: 1.5; }
 .character-choice { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid var(--card-line); }
 .character-choice label, .midway-choice label { display: block; color: var(--card-fg); font-weight: 700; cursor: pointer; }

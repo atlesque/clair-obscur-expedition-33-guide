@@ -544,6 +544,9 @@ function cancelReveal() {
   --card-line: rgba(243, 236, 223, 0.16);
   --card-accent-bg: #332923;
   --card-accent-fg: var(--paper);
+  --card-control-bg: #152027;
+  --card-control-fg: var(--paper);
+  --card-control-placeholder: #9ca6a6;
 }
 
 :root[data-theme='light'] {
@@ -557,6 +560,9 @@ function cancelReveal() {
   --card-line: rgba(27, 37, 42, 0.16);
   --card-accent-bg: #efe1c9;
   --card-accent-fg: #1b252a;
+  --card-control-bg: #fffaf1;
+  --card-control-fg: #1b252a;
+  --card-control-placeholder: #756d63;
 }
 
 * { box-sizing: border-box; }
