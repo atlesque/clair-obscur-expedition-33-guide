@@ -9,7 +9,7 @@ import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels } from '../domain
 import { ATTRIBUTES, emptyAttributes } from '../domain/types';
 import type { Character, Playthrough, SaveData } from '../domain/types';
 import { applyRecommendation, recommend, updateProgress } from '../domain/rules';
-import { id, load, save } from '../domain/storage';
+import { clear, id, load, save } from '../domain/storage';
 import CharacterCard from './CharacterCard.vue';
 import FocusDialog from './FocusDialog.vue';
 import SetupPanel from './SetupPanel.vue';
@@ -50,6 +50,7 @@ const themeMode = ref<ThemeMode>(readThemeMode());
 const setupBlocked = computed(() => unreadableSave || Boolean(saveError.value));
 
 const active = computed(() => state.value?.playthroughs.find((p) => p.id === state.value?.activeId) ?? null);
+const hasPlaythroughs = computed(() => (state.value?.playthroughs.length ?? 0) > 0);
 const themeLabel = computed(() => THEME_LABELS[themeMode.value]);
 const nextThemeMode = computed(() => THEME_MODES[(THEME_MODES.indexOf(themeMode.value) + 1) % THEME_MODES.length]);
 const nextThemeLabel = computed(() => THEME_LABELS[nextThemeMode.value]);
@@ -205,19 +206,25 @@ function createExpedition() {
 
 function requestDelete(playthrough: Playthrough) {
   managerError.value = '';
-  if (state.value?.playthroughs.length === 1) {
-    managerError.value = 'Keep at least one expedition so the guide has a current record.';
-    return;
-  }
   closeExpeditionMenu();
   deleteTarget.value = playthrough;
 }
 
 function deleteExpedition() {
-  if (!state.value || !deleteTarget.value || state.value.playthroughs.length === 1) return;
+  if (!state.value || !deleteTarget.value) return;
   const before = snapshot();
   const targetIndex = state.value.playthroughs.findIndex((item) => item.id === deleteTarget.value?.id);
   if (targetIndex < 0) return;
+  if (state.value.playthroughs.length === 1) {
+    const result = clear();
+    if (!result.ok) {
+      saveError.value = result.error ?? 'Your browser could not clear this expedition.';
+      return;
+    }
+    state.value = null;
+    deleteTarget.value = null;
+    return;
+  }
   const wasActive = state.value.activeId === deleteTarget.value.id;
   state.value.playthroughs.splice(targetIndex, 1);
   if (wasActive) state.value.activeId = state.value.playthroughs[Math.max(0, targetIndex - 1)].id;
@@ -343,7 +350,7 @@ function cancelReveal() {
         </div>
 
         <div class="top-nav__actions">
-          <div class="expedition-nav">
+          <div v-if="hasPlaythroughs" class="expedition-nav">
             <button
               type="button"
               class="top-nav__expedition"
@@ -396,8 +403,7 @@ function cancelReveal() {
                       type="button"
                       class="expedition-menu__icon-action expedition-menu__icon-action--danger"
                       aria-label="Delete"
-                      :title="state.playthroughs.length === 1 ? 'You cannot delete the only expedition' : `Delete ${playthrough.name}`"
-                      :disabled="state.playthroughs.length === 1"
+                      :title="`Delete ${playthrough.name}`"
                       @click="requestDelete(playthrough)"
                     >
                       <Trash2 :size="15" :strokeWidth="1.8" aria-hidden="true" />
@@ -532,12 +538,12 @@ function cancelReveal() {
   --page-fg: var(--paper);
   --page-muted: var(--paper-muted);
   --page-line: var(--line);
-  --card-bg: var(--paper);
-  --card-fg: var(--ink);
-  --card-muted: #756d63;
-  --card-line: var(--line-dark);
-  --card-accent-bg: #efe1c9;
-  --card-accent-fg: var(--ink);
+  --card-bg: #1d2931;
+  --card-fg: var(--paper);
+  --card-muted: #b9b2a7;
+  --card-line: rgba(243, 236, 223, 0.16);
+  --card-accent-bg: #332923;
+  --card-accent-fg: var(--paper);
 }
 
 :root[data-theme='light'] {
@@ -617,7 +623,7 @@ button, input { font: inherit; }
 .level-tag.p-tag { flex: 0 0 auto; background: var(--page-fg) !important; color: var(--page-bg) !important; border-radius: 2px; font-size: .64rem; letter-spacing: .13em; }
 .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 22px 0; }
 .stats__item { min-width: 0; }
-.stats__label { display: block; overflow: hidden; color: #7b746a; font-size: .58rem; font-weight: 700; letter-spacing: .08em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.stats__label { display: block; overflow: hidden; color: var(--card-muted); font-size: .58rem; font-weight: 700; letter-spacing: .08em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
 .stats__value { display: block; margin-top: 5px; color: var(--card-fg); font-family: var(--display); font-size: 1.55rem; line-height: 1; }
 .recommendation.p-message { margin: 0 0 20px; border-left: 3px solid var(--copper) !important; border-radius: 0; background: var(--card-accent-bg) !important; color: var(--card-accent-fg) !important; }
 .recommendation .p-message-text { color: var(--card-accent-fg) !important; }
@@ -628,18 +634,18 @@ button, input { font: inherit; }
 .character-card__actions .p-button { min-height: 38px; border-radius: 2px; font-size: .79rem; }
 .character-card__actions .p-button:not(.p-button-outlined):not(.p-button-text) { background: var(--copper); border-color: var(--copper); color: #21130c; }
 .character-card__actions .p-button.p-button-outlined { border-color: var(--card-line); color: var(--card-fg); }
-.character-card__actions .p-button.p-button-text { color: #766e63; }
-.points-line { display: flex; align-items: center; gap: 8px; margin: 21px 0 0; color: #756e65; font-size: .77rem; }
+.character-card__actions .p-button.p-button-text { color: var(--card-muted); }
+.points-line { display: flex; align-items: center; gap: 8px; margin: 21px 0 0; color: var(--card-muted); font-size: .77rem; }
 .points-line i { color: var(--copper); font-size: .75rem; }
-.add-character.p-button { width: 100%; justify-content: center; margin-top: 20px; min-height: 52px; border: 1px solid var(--page-line); border-radius: 2px; background: var(--card-bg); color: var(--card-fg); box-shadow: 4px 5px 0 rgba(0,0,0,.08); font-size: .85rem; font-weight: 700; letter-spacing: .02em; }
-.add-character.p-button:hover { background: var(--card-accent-bg); border-color: var(--copper); color: var(--card-fg); }
+.add-character.p-button.p-button-secondary.p-button-outlined { width: 100%; justify-content: center; margin-top: 20px; min-height: 52px; border: 1px solid var(--card-line); border-radius: 2px; background: var(--card-bg); color: var(--card-fg); box-shadow: 4px 5px 0 rgba(0,0,0,.08); font-size: .85rem; font-weight: 700; letter-spacing: .02em; }
+.add-character.p-button.p-button-secondary.p-button-outlined:hover { background: var(--card-accent-bg); border-color: var(--copper); color: var(--card-fg); }
 .manager-intro { margin-bottom: 20px; }
-.manager-intro p { margin: 10px 0 0; color: #655e56; line-height: 1.5; }
+.manager-intro p { margin: 10px 0 0; color: var(--card-muted); line-height: 1.5; }
 
 .dialog-intro { margin-bottom: 22px; }
-.dialog-intro p { margin: 12px 0 0; color: #655e56; line-height: 1.55; }
+.dialog-intro p { margin: 12px 0 0; color: var(--card-muted); line-height: 1.55; }
 .dialog-form { display: grid; gap: 2px; }
-.field { display: grid; gap: 7px; margin: 10px 0; color: #504940; font-size: .78rem; font-weight: 700; letter-spacing: .02em; }
+.field { display: grid; gap: 7px; margin: 10px 0; color: var(--card-muted); font-size: .78rem; font-weight: 700; letter-spacing: .02em; }
 .field .p-inputnumber, .field .p-inputtext { width: 100%; }
 .attribute-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
 .attribute-grid .field { min-width: 0; }
