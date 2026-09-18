@@ -612,8 +612,8 @@ button, input { font: inherit; }
 .character-card__inner { display: flex; flex-direction: column; min-height: 372px; padding: 25px; }
 .character-card__head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 22px; border-bottom: 1px solid var(--card-line); }
 .character-card__identity { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.character-avatar { display: block; flex: 0 0 auto; width: 64px; height: 64px; border: 2px solid var(--card-line); border-radius: 50%; background: var(--card-accent-bg); object-fit: cover; }
-.character-card h2 { margin: 0; color: var(--card-fg); font-family: var(--display); font-size: 2.35rem; font-weight: 400; letter-spacing: -.06em; }
+.character-avatar { display: block; flex: 0 0 auto; width: 64px; height: 64px; border: 0; border-radius: 0; background: transparent; object-fit: cover; }
+.character-card h2 { margin: 0; color: var(--card-fg); font-family: var(--display); font-size: 1.8rem; font-weight: 400; letter-spacing: -.06em; }
 .level-tag.p-tag { flex: 0 0 auto; background: var(--page-fg) !important; color: var(--page-bg) !important; border-radius: 2px; font-size: .64rem; letter-spacing: .13em; }
 .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 22px 0; }
 .stats__item { min-width: 0; }
@@ -631,8 +631,8 @@ button, input { font: inherit; }
 .character-card__actions .p-button.p-button-text { color: #766e63; }
 .points-line { display: flex; align-items: center; gap: 8px; margin: 21px 0 0; color: #756e65; font-size: .77rem; }
 .points-line i { color: var(--copper); font-size: .75rem; }
-.add-character.p-button { width: 100%; justify-content: center; margin-top: 20px; min-height: 56px; border: 1px dashed var(--page-line); border-radius: 2px; color: var(--page-fg); letter-spacing: .02em; }
-.add-character.p-button:hover { background: rgba(198,109,67,.08); border-color: var(--copper); color: var(--page-fg); }
+.add-character.p-button { width: 100%; justify-content: center; margin-top: 20px; min-height: 52px; border: 1px solid var(--page-line); border-radius: 2px; background: var(--card-bg); color: var(--card-fg); box-shadow: 4px 5px 0 rgba(0,0,0,.08); font-size: .85rem; font-weight: 700; letter-spacing: .02em; }
+.add-character.p-button:hover { background: var(--card-accent-bg); border-color: var(--copper); color: var(--card-fg); }
 .manager-intro { margin-bottom: 20px; }
 .manager-intro p { margin: 10px 0 0; color: #655e56; line-height: 1.5; }
 
