@@ -1,20 +1,61 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import Dialog from 'primevue/dialog';
+
 const props = defineProps<{ title: string }>();
 const emit = defineEmits<{ close: [] }>();
-const root = ref<HTMLElement | null>(null);
+const visible = ref(true);
 let previous: HTMLElement | null = null;
-const keydown = (event: KeyboardEvent) => {
-  if (event.key === 'Escape') { emit('close'); return; }
-  if (event.key !== 'Tab' || !root.value) return;
-  const focusable = [...root.value.querySelectorAll<HTMLElement>('button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])')].filter(e => !e.hasAttribute('disabled'));
-  if (!focusable.length) return;
-  const index = focusable.indexOf(document.activeElement as HTMLElement);
-  const next = focusable[(index + (event.shiftKey ? -1 : 1) + focusable.length) % focusable.length];
-  event.preventDefault(); next.focus();
-};
-onMounted(async () => { previous = document.activeElement as HTMLElement; document.querySelector('main')?.setAttribute('inert', ''); window.addEventListener('keydown', keydown); await nextTick(); root.value?.querySelector<HTMLElement>('input,button')?.focus(); });
-onUnmounted(() => { window.removeEventListener('keydown', keydown); document.querySelector('main')?.removeAttribute('inert'); previous?.focus(); });
+
+function updateVisible(value: boolean) {
+  visible.value = value;
+  if (!value) emit('close');
+}
+
+onMounted(async () => {
+  previous = document.activeElement as HTMLElement;
+  await nextTick();
+  requestAnimationFrame(() => document.querySelector<HTMLElement>('.field-dialog input')?.focus());
+});
+
+onUnmounted(() => previous?.focus());
 </script>
-<template><Teleport to="body"><div class="modal-backdrop"><section ref="root" class="modal" role="dialog" aria-modal="true" :aria-label="props.title"><h2>{{ props.title }}</h2><slot /><div class="actions"><slot name="actions" /></div></section></div></Teleport></template>
-<style>.modal{color:#f6f1e8;max-height:calc(100dvh - 36px);overflow:auto;box-sizing:border-box}.modal input,.modal button{color:#fff;background:#171717;border:1px solid #88705d}.modal .primary{background:#c77f4e;color:#1b1410}</style>
+
+<template>
+  <Dialog
+    :visible="visible"
+    :header="props.title"
+    :ariaLabel="props.title"
+    modal
+    closable
+    closeOnEscape
+    :draggable="false"
+    :style="{ width: 'min(580px, calc(100vw - 32px))' }"
+    class="field-dialog"
+    @update:visible="updateVisible"
+  >
+    <slot />
+  </Dialog>
+</template>
+
+<style>
+.field-dialog.p-dialog { overflow: hidden; border: 0; border-radius: 2px; background: var(--paper); color: var(--ink); box-shadow: 14px 18px 0 rgba(0,0,0,.22); }
+.field-dialog .p-dialog-header { padding: 22px 25px 13px; background: var(--paper); color: var(--ink); font-family: var(--display); font-size: 1.8rem; font-weight: 400; letter-spacing: -.05em; }
+.field-dialog .p-dialog-header-actions { gap: 4px; }
+.field-dialog .p-dialog-header-icon { width: 34px; height: 34px; border-radius: 2px; color: #756d63; }
+.field-dialog .p-dialog-header-icon:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+.field-dialog .p-dialog-content { padding: 4px 25px 25px; background: var(--paper); color: var(--ink); }
+.field-dialog .p-inputnumber, .field-dialog .p-inputtext { width: 100%; }
+.field-dialog .p-inputnumber-input, .field-dialog .p-inputtext { border-color: rgba(17,24,30,.22); border-radius: 2px; color: var(--ink); }
+.field-dialog .p-inputnumber-input:enabled:focus, .field-dialog .p-inputtext:enabled:focus { border-color: var(--copper); box-shadow: 0 0 0 1px var(--copper); }
+.field-dialog .p-button { border-radius: 2px; }
+.field-dialog .p-button:not(.p-button-text):not(.p-button-outlined) { background: var(--copper); border-color: var(--copper); color: #21130c; }
+.field-dialog .p-button:not(.p-button-text):not(.p-button-outlined):hover { background: var(--copper-deep); border-color: var(--copper-deep); }
+.field-dialog .p-button.p-button-text { color: #756d63; }
+.field-dialog .p-dialog-mask { background: rgba(8, 13, 17, .78); backdrop-filter: blur(4px); }
+
+@media (max-width: 560px) {
+  .field-dialog .p-dialog-header { padding: 20px 19px 12px; font-size: 1.6rem; }
+  .field-dialog .p-dialog-content { padding: 4px 19px 20px; }
+}
+</style>

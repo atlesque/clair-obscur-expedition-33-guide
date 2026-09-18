@@ -12,7 +12,10 @@
   },
   "dependencies": {
     "@astrojs/vue": "^5.0.0",
+    "@lucide/vue": "^1.47.0",
+    "@primeuix/themes": "^2.0.3",
     "astro": "^5.0.0",
+    "primevue": "^4.5.5",
     "vue": "^3.5.0"
   },
   "devDependencies": {

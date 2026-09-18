@@ -1,8 +1,58 @@
 <script setup lang="ts">
+import Button from 'primevue/button';
+import Card from 'primevue/card';
+import Message from 'primevue/message';
+import Tag from 'primevue/tag';
+import { Zap } from '@lucide/vue';
 import { ATTRIBUTES } from '../domain/types';
 import { attributeLabels } from '../domain/data';
 import type { Character } from '../domain/types';
+
 defineProps<{ character: Character }>();
-defineEmits<{ advise: [character: Character]; update: [character: Character]; confirm: [character: Character]; dismiss: [character: Character] }>();
+defineEmits<{
+  advise: [character: Character];
+  update: [character: Character];
+  confirm: [character: Character];
+  dismiss: [character: Character];
+}>();
 </script>
-<template><article class="card character"><div class="card-head"><div><p class="eyebrow">TRACKED CHARACTER</p><h2>{{ character.name }}</h2></div><span class="level">LV {{ character.level }}</span></div><div class="stats"><div v-for="a in ATTRIBUTES" :key="a"><span>{{ attributeLabels[a] }}</span><b>{{ character.invested[a] }}</b></div></div><p v-if="character.pending" class="advice"><strong>Pending recommendation</strong><br /><span v-for="(amount,a) in character.pending.spend" :key="a">+{{ amount }} {{ attributeLabels[a] }} </span><br /><small>{{ character.pending.explanation }}</small></p><div class="actions"><button @click="$emit('update', character)">Update progress</button><button @click="$emit('advise', character)">Get advice <span class="sr-only">for {{ character.name }}</span></button><button v-if="character.pending" class="primary" @click="$emit('confirm', character)">I've applied these</button><button v-if="character.pending" type="button" @click="$emit('dismiss', character)">Dismiss advice</button></div><p class="points">{{ character.points }} attribute points available</p></article></template>
+
+<template>
+  <Card class="character-card">
+    <template #content>
+      <div class="character-card__inner">
+        <div class="character-card__head">
+          <div>
+            <div class="character-card__index">Entry / {{ character.id === 'gustave' ? '01' : character.id === 'lune' ? '02' : '—' }}</div>
+            <h2>{{ character.name }}</h2>
+          </div>
+          <Tag :value="`LV ${character.level}`" class="level-tag" />
+        </div>
+
+        <div class="stats" aria-label="Recorded attributes">
+          <div v-for="attribute in ATTRIBUTES" :key="attribute" class="stats__item">
+            <span class="stats__label">{{ attributeLabels[attribute] }}</span>
+            <span class="stats__value">{{ character.invested[attribute] }}</span>
+          </div>
+        </div>
+
+        <Message v-if="character.pending" severity="warn" :closable="false" class="recommendation">
+          <strong>Pending recommendation</strong>
+          <span class="recommendation__spend">
+            <span v-for="(amount, attribute) in character.pending.spend" :key="attribute">+{{ amount }} {{ attributeLabels[attribute] }} </span>
+          </span>
+          <small>{{ character.pending.explanation }}</small>
+        </Message>
+
+        <div class="character-card__actions">
+          <Button label="Update progress" severity="secondary" outlined @click="$emit('update', character)" />
+          <Button label="Get advice" :aria-label="`Get advice for ${character.name}`" @click="$emit('advise', character)" />
+          <Button v-if="character.pending" label="I've applied these" @click="$emit('confirm', character)" />
+          <Button v-if="character.pending" label="Dismiss advice" severity="secondary" text @click="$emit('dismiss', character)" />
+        </div>
+
+        <p class="points-line"><Zap :size="14" :strokeWidth="1.8" aria-hidden="true" />{{ character.points }} attribute points available</p>
+      </div>
+    </template>
+  </Card>
+</template>
