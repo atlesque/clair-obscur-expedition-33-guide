@@ -9,6 +9,7 @@ export default defineConfig({
       title: 'Expedition 33',
       description: 'A spoiler-conscious leveling companion for Clair Obscur: Expedition 33.',
       tagline: 'A spoiler-conscious leveling companion',
+      favicon: '/favicon.png',
       sidebar: [],
       tableOfContents: false,
       pagination: false,
