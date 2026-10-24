@@ -116,3 +116,62 @@ test('custom controls support keyboard adjustment without submitting progress', 
   await page.reload();
   await expect(page.getByText('LV 2')).toBeVisible();
 });
+
+test('reveals setup characters individually and records an advanced party', async ({page}) => {
+  await chooseStart(page, 'Join midway');
+  const later = ['Maelle', 'Sciel', 'Verso', 'Monoco'];
+  for (const name of later) await expect(page.getByText(name,{exact:true})).toHaveCount(0);
+  await page.getByRole('checkbox',{name:'Gustave',exact:true}).uncheck();
+  await page.getByRole('checkbox',{name:'Lune',exact:true}).uncheck();
+  for (let i=0; i<later.length; i++) {
+    await page.getByRole('button',{name:'Reveal next character',exact:true}).click();
+    const checkbox = page.getByRole('checkbox',{name:later[i],exact:true});
+    await expect(checkbox).not.toBeChecked();
+    await expect(page.getByRole('button',{name:'Continue',exact:true})).toBeDisabled();
+    for (const hidden of later.slice(i+1)) await expect(page.getByText(hidden,{exact:true})).toHaveCount(0);
+  }
+  await expect(page.getByRole('button',{name:'Reveal next character',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('status')).toHaveText('All available characters have been revealed.');
+  for (const name of later) await page.getByRole('checkbox',{name,exact:true}).check();
+  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  for (let i=0; i<later.length; i++) {
+    await expect(page.getByRole('heading',{name:`${later[i]}’s progress`})).toBeVisible();
+    await page.getByRole('spinbutton',{name:'Current level',exact:true}).fill(String(20+i));
+    await page.getByRole('spinbutton',{name:'Vitality',exact:true}).fill(String(10+i));
+    await page.getByRole('button',{name:i===later.length-1 ? 'Create playthrough' : 'Continue',exact:true}).click();
+  }
+  await page.reload();
+  for (let i=0; i<later.length; i++) {
+    await expect(page.getByRole('heading',{name:later[i],exact:true})).toHaveCount(1);
+    await expect(page.getByText(`LV ${20+i}`,{exact:true})).toBeVisible();
+  }
+  await expect(page.getByRole('heading',{name:'Gustave',exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'Add a character',exact:true}).click();
+  await page.getByRole('button',{name:'Reveal character',exact:true}).click();
+  await expect(page.getByText('No additional character is available right now.')).toBeVisible();
+});
+
+test('skipped revealed characters remain addable without duplicating the advanced party', async ({page}) => {
+  await chooseStart(page, 'Join midway');
+  for (let i=0;i<3;i++) await page.getByRole('button',{name:'Reveal next character',exact:true}).click();
+  await page.getByRole('checkbox',{name:'Verso',exact:true}).check();
+  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await page.getByRole('button',{name:'Back',exact:true}).click();
+  await expect(page.getByRole('checkbox',{name:'Verso',exact:true})).toBeChecked();
+  await expect(page.getByRole('checkbox',{name:'Sciel',exact:true})).not.toBeChecked();
+  await expect(page.getByText('Monoco',{exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  for (let i=0;i<2;i++) await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await page.getByRole('button',{name:'Create playthrough',exact:true}).click();
+  await page.reload();
+  for (const name of ['Maelle','Sciel','Monoco']) {
+    await page.getByRole('button',{name:'Add a character',exact:true}).click();
+    await page.getByRole('button',{name:'Reveal character',exact:true}).click();
+    await expect(page.getByText(`The next character is ${name}.`)).toBeVisible();
+    await page.getByRole('button',{name:'Add to playthrough',exact:true}).click();
+    await page.getByRole('button',{name:'Save progress',exact:true}).click();
+    await page.reload();
+  }
+  await expect(page.getByRole('heading',{name:'Verso',exact:true})).toHaveCount(1);
+  await expect(page.locator('.character-card')).toHaveCount(6);
+});

@@ -144,7 +144,8 @@ function start(actual: Record<string, { level: number; points: number; invested:
   const before = snapshot();
   try {
     const characters = selected.value.map((key) => {
-      const d = INITIAL_CHARACTERS[key as keyof typeof INITIAL_CHARACTERS];
+      const d = INITIAL_CHARACTERS[key as keyof typeof INITIAL_CHARACTERS] ?? LATER_CHARACTERS.find(item => item.id === key);
+      if (!d) throw new Error('Choose a known character.');
       const input = actual[key];
       if (input) {
         return updateProgress(
@@ -154,7 +155,7 @@ function start(actual: Record<string, { level: number; points: number; invested:
       }
       return { id: key, name: d.name, level: 1, invested: { ...d.defaults }, points: 3, tracked: true, revealed: true };
     });
-    const p: Playthrough = { ...makePlaythrough(setupName.value), characters };
+    const p: Playthrough = { ...makePlaythrough(setupName.value), characters, nextRevealIndex: nextCharacterIndex(characters) };
     state.value = { version: 1, playthroughs: [p], activeId: p.id };
     persist(before);
   } catch (e) {
@@ -254,7 +255,7 @@ function submitProgress() {
     const character = updateProgress({ ...setupCharacter.value }, draft.value);
     if (adding) {
       active.value.characters.push(character);
-      active.value.nextRevealIndex++;
+      active.value.nextRevealIndex = nextCharacterIndex(active.value.characters);
     } else {
       const index = active.value.characters.findIndex((item) => item.id === setupCharacter.value?.id);
       active.value.characters[index] = character;
@@ -298,13 +299,18 @@ function confirm(character: Character) {
   if (persist(before)) notice.value = 'Applied recommendation recorded once.';
 }
 
+function nextCharacterIndex(characters: Character[]) {
+  const index = LATER_CHARACTERS.findIndex(candidate => !characters.some(character => character.id === candidate.id));
+  return index === -1 ? LATER_CHARACTERS.length : index;
+}
+
 function openReveal() {
   revealStage.value = 'warning';
 }
 
 function consentReveal() {
   if (!active.value) return;
-  const next = active.value.nextRevealIndex;
+  const next = nextCharacterIndex(active.value.characters);
   revealStage.value = next < LATER_CHARACTERS.length ? 'identity' : 'terminal';
   if (next < LATER_CHARACTERS.length) revealedCandidate.value = LATER_CHARACTERS[next];
 }

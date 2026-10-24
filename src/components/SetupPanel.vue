@@ -4,8 +4,8 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
-import { ArrowLeft, ArrowRight } from '@lucide/vue';
-import { INITIAL_CHARACTERS, attributeLabels, characterAvatar } from '../domain/data';
+import { ArrowLeft, ArrowRight, Eye } from '@lucide/vue';
+import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels, characterAvatar } from '../domain/data';
 import { ATTRIBUTES, emptyAttributes } from '../domain/types';
 import type { Attributes } from '../domain/types';
 import NumberInput from './NumberInput.vue';
@@ -21,14 +21,19 @@ const step = ref(0);
 const title = ref<HTMLElement | null>(null);
 const drafts = ref<Record<string, Progress>>({});
 const error = ref('');
+const revealedCount = ref(0);
+const visibleCharacters = computed(() => [
+  ...Object.entries(INITIAL_CHARACTERS).map(([id, item]) => ({ id, ...item })),
+  ...(mode.value === 'midway' ? LATER_CHARACTERS.slice(0, revealedCount.value) : []),
+]);
 const steps = computed(() => ['mode', 'name', 'party', ...(mode.value === 'midway' ? props.selected : [])]);
 const current = computed(() => steps.value[step.value]);
-const character = computed(() => INITIAL_CHARACTERS[current.value as keyof typeof INITIAL_CHARACTERS]);
+const character = computed(() => visibleCharacters.value.find(item => item.id === current.value)!);
 const progress = computed(() => drafts.value[current.value]);
 const isBlocked = computed(() => props.blocked || props.disabled);
 const lastStep = computed(() => current.value === 'party' ? mode.value === 'new' : step.value > 2 && step.value === steps.value.length - 1);
 const heading = computed(() => current.value === 'mode' ? 'Where are you starting?' : current.value === 'name' ? 'Name your expedition' : current.value === 'party' ? 'Who’s in your party?' : `${character.value.name}’s progress`);
-const description = computed(() => current.value === 'mode' ? 'Choose a starting point for your expedition.' : current.value === 'name' ? 'Give this playthrough a name so you can find it later.' : current.value === 'party' ? 'Choose the initial characters you want to track. You can reveal others later.' : 'Enter the level, available points, and invested attributes shown in-game.');
+const description = computed(() => current.value === 'mode' ? 'Choose a starting point for your expedition.' : current.value === 'name' ? 'Give this playthrough a name so you can find it later.' : current.value === 'party' ? mode.value === 'midway' ? 'Choose everyone who is already in your party. Reveal later characters below, one at a time.' : 'Choose the initial characters you want to track. You can reveal others later.' : 'Enter the level, available points, and invested attributes shown in-game.');
 
 function ensureDraft(key: string) {
   if (!drafts.value[key]) drafts.value[key] = { level: 1, points: 0, invested: emptyAttributes() };
@@ -38,6 +43,7 @@ function toggleCharacter(key: string, checked: boolean) {
 }
 function chooseMode(value: 'new' | 'midway') {
   mode.value = value;
+  if (value === 'new') emit('update:selected', props.selected.filter(key => key in INITIAL_CHARACTERS));
   advance();
 }
 function advance() {
@@ -87,13 +93,24 @@ watch(step, async () => { await nextTick(); title.value?.focus(); });
             <span>Playthrough name</span>
             <InputText id="playthrough-name" :modelValue="name" :disabled="isBlocked" autocomplete="off" @update:modelValue="emit('update:name', $event ?? '')" />
           </label>
-          <fieldset v-else-if="current === 'party'" class="initial-characters">
-            <legend class="sr-only">Initial characters</legend>
-            <div v-for="(item, key) in INITIAL_CHARACTERS" :key="key" class="character-choice">
-              <Checkbox :inputId="`initial-${key}`" :modelValue="selected.includes(key)" binary :disabled="isBlocked" @update:modelValue="toggleCharacter(key, $event)" />
-              <label :for="`initial-${key}`"><img :src="characterAvatar(key)" alt="" width="48" height="48" /><span>{{ item.name }}</span></label>
+          <div v-else-if="current === 'party'">
+          <fieldset class="initial-characters">
+            <legend class="sr-only">Party characters</legend>
+            <div v-for="item in visibleCharacters" :key="item.id" class="character-choice">
+              <Checkbox :inputId="`initial-${item.id}`" :modelValue="selected.includes(item.id)" binary :disabled="isBlocked" @update:modelValue="toggleCharacter(item.id, $event)" />
+              <label :for="`initial-${item.id}`"><img :src="characterAvatar(item.id)" alt="" width="48" height="48" /><span>{{ item.name }}</span></label>
             </div>
           </fieldset>
+          <div v-if="mode === 'midway'" class="setup-reveal">
+            <template v-if="revealedCount < LATER_CHARACTERS.length">
+              <p id="setup-reveal-help">Only reveal the next character if they have already joined your party. Revealing a character does not select them.</p>
+              <Button type="button" severity="secondary" outlined :disabled="isBlocked" aria-describedby="setup-reveal-help" @click="revealedCount++">
+                <Eye :size="17" aria-hidden="true" /><span>Reveal next character</span>
+              </Button>
+            </template>
+            <p v-else role="status">All available characters have been revealed.</p>
+          </div>
+          </div>
           <div v-else-if="progress" class="catch-up">
             <div class="catch-up__fields">
               <div class="setup-field">
@@ -147,6 +164,9 @@ watch(step, async () => { await nextTick(); title.value?.focus(); });
 .character-choice { display: flex; align-items: center; gap: 16px; padding: 15px 0; border-bottom: 1px solid var(--card-line); }
 .character-choice label { display: flex; align-items: center; gap: 16px; flex: 1; min-height: 48px; cursor: pointer; font-weight: 600; }
 .character-choice img { border-radius: 6px; object-fit: cover; }
+.setup-reveal { margin-top: 22px; }
+.setup-reveal p { color: var(--card-muted); font-size: .8rem; line-height: 1.6; margin: 0 0 14px; }
+.setup-reveal .p-button { min-height: 44px; color: var(--gold-strong); border-color: var(--card-line); }
 .catch-up__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-bottom: 14px; }
 .setup-attribute { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 12px 0; border-top: 1px solid var(--card-line); }
 .setup-attribute label { color: var(--card-fg); font-size: .86rem; }
