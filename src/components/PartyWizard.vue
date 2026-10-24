@@ -73,7 +73,7 @@ watch(() => character.value?.id, async () => {
     <Message v-if="error" severity="error" :closable="false" class="dialog-error">{{ error }}</Message>
     <template v-if="character">
       <form v-if="mode === 'update'" novalidate class="dialog-form" @submit.prevent="save">
-        <ProgressFields :draft="draft" />
+        <ProgressFields :draft="draft" :characterId="character.id" />
         <div class="dialog-actions">
           <Button type="button" label="Cancel" severity="secondary" text @click="emit('close')" />
           <Button type="button" label="Skip character" severity="secondary" outlined @click="next" />

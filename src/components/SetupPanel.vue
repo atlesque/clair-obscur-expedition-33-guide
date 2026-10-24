@@ -9,6 +9,7 @@ import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels, characterAvatar,
 import { ATTRIBUTES, emptyAttributes } from '../domain/types';
 import { writeSetupDraft } from '../domain/setup-url';
 import type { SetupDraft, SetupProgress } from '../domain/setup-url';
+import { weaponScaling } from '../domain/weapons';
 import NumberInput from './NumberInput.vue';
 import WeaponField from './WeaponField.vue';
 
@@ -16,7 +17,7 @@ type Progress = SetupProgress;
 const props = defineProps<{ name: string; selected: string[]; resume?: SetupDraft | null; disabled: boolean; blocked: boolean }>();
 const emit = defineEmits<{
   'update:name': [value: string]; 'update:selected': [value: string[]];
-  start: [value: Record<string, Progress | null>];
+  start: [value: Record<string, Progress | null>, revealComplete: boolean];
 }>();
 const mode = ref<'new' | 'midway' | null>(props.resume?.mode ?? null);
 const step = ref(0);
@@ -34,6 +35,7 @@ step.value = Math.max(0, steps.value.indexOf(props.resume?.screen ?? 'mode'));
 const current = computed(() => steps.value[step.value]);
 const character = computed(() => visibleCharacters.value.find(item => item.id === current.value)!);
 const progress = computed(() => drafts.value[current.value]);
+const scaling = computed(() => weaponScaling(current.value, progress.value?.weapon));
 const isBlocked = computed(() => props.blocked || props.disabled);
 const lastStep = computed(() => step.value > 2 && step.value === steps.value.length - 1);
 const heading = computed(() => current.value === 'mode' ? 'Where are you starting?' : current.value === 'name' ? 'Name your expedition' : current.value === 'party' ? 'Who’s in your party?' : `${character.value.name}’s ${mode.value === 'new' ? 'weapon' : 'progress'}`);
@@ -77,7 +79,7 @@ function advance() {
     const actual = mode.value === 'midway' ? drafts.value : Object.fromEntries(props.selected.map(key => [key, {
       level: 1, points: 3, invested: { ...INITIAL_CHARACTERS[key as keyof typeof INITIAL_CHARACTERS].defaults }, weapon: drafts.value[key].weapon?.trim(),
     }]));
-    emit('start', actual);
+    emit('start', actual, mode.value === 'midway' && revealComplete.value);
   }
   else step.value++;
 }
@@ -138,7 +140,7 @@ watch([mode, step, revealedCount, revealComplete, drafts, () => props.name, () =
           </div>
           </div>
           <div v-else-if="progress" class="catch-up">
-            <WeaponField v-model="progress.weapon" :inputId="`setup-weapon-${current}`" :disabled="isBlocked" />
+            <WeaponField v-model="progress.weapon" :characterId="current" :inputId="`setup-weapon-${current}`" :disabled="isBlocked" />
             <template v-if="mode === 'midway'">
             <div class="catch-up__fields">
               <div class="setup-field">
@@ -151,8 +153,8 @@ watch([mode, step, revealedCount, revealComplete, drafts, () => props.name, () =
               </div>
             </div>
             <div class="catch-up__attributes">
-              <div v-for="attribute in ATTRIBUTES" :key="attribute" class="setup-attribute">
-                <label :for="`setup-${current}-${attribute}`">{{ attributeLabels[attribute] }}</label>
+              <div v-for="attribute in ATTRIBUTES" :key="attribute" class="setup-attribute" :class="{ 'is-scaling': scaling[attribute] }">
+                <label :for="`setup-${current}-${attribute}`">{{ attributeLabels[attribute] }}<span v-if="scaling[attribute]" class="scaling-grade" aria-hidden="true" :title="`Weapon scales with ${attributeLabels[attribute]} (grade ${scaling[attribute]} at weapon level 33)`">{{ scaling[attribute] }}</span></label>
                 <NumberInput v-model="progress.invested[attribute]" :inputId="`setup-${current}-${attribute}`" :label="attributeLabels[attribute]" :max="99" :disabled="isBlocked" />
               </div>
             </div>

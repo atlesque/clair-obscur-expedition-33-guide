@@ -3,9 +3,21 @@ async function chooseStart(page: import('@playwright/test').Page, mode = 'Start 
   await page.getByRole('button', { name: mode, exact: false }).click();
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
 }
+async function pickWeapon(page: import('@playwright/test').Page, prefix: string, name: string) {
+  await page.getByLabel('Equipped weapon', {exact:true}).fill(prefix);
+  await page.getByRole('option', {name, exact:true}).click();
+}
+// One three-letter prefix per weapon pool, so the helper works for whichever character is on screen.
+const POOL_PICKS = [['Aby','Abysseram'],['Col','Colim'],['Bat','Battlum'],['Alg','Algueron'],['Nus','Nusaro']];
 async function enterWeapon(page: import('@playwright/test').Page) {
   const input = page.getByLabel('Equipped weapon', {exact:true});
-  if (await input.count() && !(await input.inputValue())) await input.fill('Recorded weapon');
+  if (!(await input.count()) || await input.inputValue()) return;
+  for (const [prefix, name] of POOL_PICKS) {
+    await input.fill(prefix);
+    const option = page.getByRole('option', {name, exact:true});
+    if (await option.waitFor({timeout:500}).then(() => true, () => false)) { await option.click(); return; }
+  }
+  throw new Error('No weapon pool matched the current character.');
 }
 async function proceedSetup(page: import('@playwright/test').Page, name: string) {
   await enterWeapon(page);
@@ -43,7 +55,7 @@ test('uses anonymous reveal dialog and preserves cancellation', async ({page}) =
 test('does not overwrite malformed saved data', async ({page}) => { await page.evaluate(() => localStorage.setItem('expedition-33-guide.v1','not-json')); await page.reload(); await expect(page.getByRole('alert')).toContainText('saved playthrough could not be read'); await expect(page.getByRole('button',{name:/Start new expedition/})).toBeDisabled(); await expect(page.evaluate(() => localStorage.getItem('expedition-33-guide.v1'))).resolves.toBe('not-json'); });
 test('shows an honest failure when storage becomes unwritable', async ({page}) => { await page.evaluate(() => { const original=Storage.prototype.setItem; Storage.prototype.setItem=function(){ throw new Error('blocked'); }; (window as any).__restore=()=>Storage.prototype.setItem=original; }); await createNew(page); await expect(page.getByRole('alert')).toContainText('could not save'); });
 test('supports direct catch-up, correction, confirmation and reload', async ({page}) => { await createNew(page); await page.locator('.character-card').getByRole('button',{name:'Update progress'}).first().click(); await page.getByRole('spinbutton',{name:'Current level',exact:true}).fill('15'); await page.getByRole('spinbutton',{name:'Available attribute points',exact:true}).fill('30'); await saveCharacter(page); await page.getByRole('button',{name:/Get advice for Gustave/}).click(); await expect(page.getByText('Pending recommendation')).toBeVisible(); await page.locator('.character-card').getByRole('button',{name:'Update progress'}).first().click(); await page.getByRole('spinbutton',{name:'Available attribute points',exact:true}).fill('5'); await saveCharacter(page); await expect(page.getByText('Pending recommendation')).toHaveCount(0); await page.getByRole('button',{name:/Get advice for Gustave/}).click(); await page.reload(); await expect(page.getByText('Pending recommendation')).toBeVisible(); await page.getByRole('button',{name:"I've applied these"}).first().click(); await page.reload(); await expect(page.getByText('Pending recommendation')).toHaveCount(0); });
-test('adds sequentially only after setup and keeps terminal add control', async ({page}) => { await createNew(page); const add=page.getByRole('button',{name:/Add a character/}); await add.click(); await page.getByRole('button',{name:'Reveal character'}).click(); await page.getByRole('button',{name:'Add to playthrough'}).click(); await page.getByRole('button',{name:'Cancel'}).last().click(); await expect(page.getByRole('heading',{name:'Maelle',exact:true})).toHaveCount(0); for(let i=0;i<4;i++){ await add.click(); await page.getByRole('button',{name:'Reveal character'}).click(); await page.getByRole('button',{name:'Add to playthrough'}).click(); await saveCharacter(page); } await add.click(); await page.getByRole('button',{name:'Reveal character'}).click(); await expect(page.getByText('No additional character is available right now.')).toBeVisible(); await page.getByRole('button',{name:'Cancel'}).click(); await expect(add).toBeVisible(); });
+test('adds sequentially only after setup and retires the add control once nobody is left', async ({page}) => { await createNew(page); const add=page.getByRole('button',{name:/Add a character/}); await add.click(); await page.getByRole('button',{name:'Reveal character'}).click(); await page.getByRole('button',{name:'Add to playthrough'}).click(); await page.getByRole('button',{name:'Cancel'}).last().click(); await expect(page.getByRole('heading',{name:'Maelle',exact:true})).toHaveCount(0); for(let i=0;i<4;i++){ await add.click(); await page.getByRole('button',{name:'Reveal character'}).click(); await page.getByRole('button',{name:'Add to playthrough'}).click(); await saveCharacter(page); } await add.click(); await page.getByRole('button',{name:'Reveal character'}).click(); await expect(page.getByText('No additional character is available right now.')).toBeVisible(); await page.getByRole('button',{name:'Cancel'}).click(); await expect(add).toHaveCount(0); await page.reload(); await expect(page.getByRole('heading',{name:'Monoco',exact:true})).toBeVisible(); await expect(add).toHaveCount(0); });
 test('cancelling later-character setup does not append a duplicate on retry', async ({page}) => { await createNew(page); const add=page.getByRole('button',{name:/Add a character/}); await add.click(); await page.getByRole('button',{name:'Reveal character'}).click(); await page.getByRole('button',{name:'Add to playthrough'}).click(); await page.getByRole('button',{name:'Cancel'}).last().click(); await add.click(); await page.getByRole('button',{name:'Reveal character'}).click(); await page.getByRole('button',{name:'Add to playthrough'}).click(); await saveCharacter(page); await expect(page.getByRole('heading',{name:'Maelle',exact:true})).toHaveCount(1); });
 test('recovers later-character setup after a failed save without duplicating or advancing', async ({page}) => { await createNew(page); const add=page.getByRole('button',{name:/Add a character/}); await add.click(); await page.getByRole('button',{name:'Reveal character'}).click(); await page.getByRole('button',{name:'Add to playthrough'}).click(); await page.evaluate(() => { const original=Storage.prototype.setItem; let fail=true; Storage.prototype.setItem=function(key,value){ if(fail){ fail=false; throw new Error('blocked once'); } return original.call(this,key,value); }; (window as any).__restore=()=>Storage.prototype.setItem=original; }); await saveCharacter(page); await expect(page.getByRole('alert')).toContainText('could not save'); await expect(page.getByRole('heading',{name:'Maelle',exact:true})).toHaveCount(0); await page.evaluate(() => (window as any).__restore()); await saveCharacter(page); await expect(page.getByRole('heading',{name:'Maelle',exact:true})).toHaveCount(1); await page.reload(); await expect(page.getByRole('heading',{name:'Maelle',exact:true})).toHaveCount(1); await add.click(); await page.getByRole('button',{name:'Reveal character'}).click(); await expect(page.getByText(/The next character is Sciel/)).toBeVisible(); });
 test('rejects malformed nested saves without overwriting raw data', async ({page}) => { const raw='{"version":1,"activeId":"p","playthroughs":[{"id":"p","name":"x","characters":[{"id":"gustave","name":"Gustave","level":0}]}]}'; await page.evaluate(raw => localStorage.setItem('expedition-33-guide.v1', raw), raw); await page.reload(); await expect(page.getByRole('alert')).toContainText('unreadable'); await expect(page.getByRole('button',{name:/Start new expedition/})).toBeDisabled(); await expect(page.evaluate(() => localStorage.getItem('expedition-33-guide.v1'))).resolves.toBe(raw); });
@@ -174,9 +186,8 @@ test('reveals setup characters individually and records an advanced party', asyn
     await expect(page.getByText(`LV ${20+i}`,{exact:true})).toBeVisible();
   }
   await expect(page.getByRole('heading',{name:'Gustave',exact:true})).toHaveCount(0);
-  await page.getByRole('button',{name:'Add a character',exact:true}).click();
-  await page.getByRole('button',{name:'Reveal character',exact:true}).click();
-  await expect(page.getByText('No additional character is available right now.')).toBeVisible();
+  // Setup already showed that everyone has been revealed, so there is nobody left to add.
+  await expect(page.getByRole('button',{name:'Add a character',exact:true})).toHaveCount(0);
 });
 
 test('skipped revealed characters remain addable without duplicating the advanced party', async ({page}) => {
@@ -278,15 +289,15 @@ test('requires equipped weapons in new onboarding and restores them from the URL
   await expect(page.getByRole('heading',{name:'Gustave’s weapon',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Continue',exact:true}).click();
   await expect(page.getByRole('alert')).toContainText('Enter the equipped weapon name');
-  await page.getByLabel('Equipped weapon',{exact:true}).fill('Weapon from my save');
+  await pickWeapon(page,'Aby','Abysseram');
   await page.reload();
   await expect(page.getByRole('heading',{name:'Gustave’s weapon',exact:true})).toBeVisible();
-  await expect(page.getByLabel('Equipped weapon',{exact:true})).toHaveValue('Weapon from my save');
+  await expect(page.getByLabel('Equipped weapon',{exact:true})).toHaveValue('Abysseram');
   await page.getByRole('button',{name:'Continue',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Lune’s weapon',exact:true})).toBeVisible();
-  await page.getByLabel('Equipped weapon',{exact:true}).fill('Another equipped weapon');
+  await pickWeapon(page,'Col','Colim');
   // Wait for the URL to contain the last field edit before adapting an older draft.
-  await expect.poll(() => JSON.parse(new URL(page.url()).searchParams.get('setup')!).progress.lune.weapon).toBe('Another equipped weapon');
+  await expect.poll(() => JSON.parse(new URL(page.url()).searchParams.get('setup')!).progress.lune.weapon).toBe('Colim');
   // A draft URL saved before weapons were required may lack an earlier character's entry.
   const oldUrl = new URL(page.url());
   const draft = JSON.parse(oldUrl.searchParams.get('setup')!);
@@ -295,13 +306,13 @@ test('requires equipped weapons in new onboarding and restores them from the URL
   await page.goto(oldUrl.href);
   await page.getByRole('button',{name:'Create playthrough',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Gustave’s weapon',exact:true})).toBeVisible();
-  await page.getByLabel('Equipped weapon',{exact:true}).fill('Weapon from my save');
+  await pickWeapon(page,'Aby','Abysseram');
   await page.getByRole('button',{name:'Continue',exact:true}).click();
-  await expect(page.getByLabel('Equipped weapon',{exact:true})).toHaveValue('Another equipped weapon');
+  await expect(page.getByLabel('Equipped weapon',{exact:true})).toHaveValue('Colim');
   await page.getByRole('button',{name:'Create playthrough',exact:true}).click();
-  await expect(page.locator('.character-weapon strong')).toHaveText(['Weapon from my save','Another equipped weapon']);
+  await expect(page.locator('.character-weapon strong')).toHaveText(['Abysseram','Colim']);
   await page.reload();
-  await expect(page.locator('.character-weapon strong')).toHaveText(['Weapon from my save','Another equipped weapon']);
+  await expect(page.locator('.character-weapon strong')).toHaveText(['Abysseram','Colim']);
 });
 
 test('keeps older saves readable and requires a weapon when updating them', async ({page}) => {
@@ -317,10 +328,60 @@ test('keeps older saves readable and requires a weapon when updating them', asyn
   await expect(page.getByLabel('Equipped weapon',{exact:true})).toBeFocused();
   await page.getByRole('button',{name:'Save progress',exact:true}).click();
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('equipped weapon');
-  await page.getByLabel('Equipped weapon',{exact:true}).fill('  Updated weapon  ');
+  await pickWeapon(page,'aby','Abysseram');
   await page.getByRole('button',{name:'Save progress',exact:true}).click();
-  await expect(card.locator('.character-weapon strong')).toHaveText('Updated weapon');
+  await expect(card.locator('.character-weapon strong')).toHaveText('Abysseram');
   await expect(card.getByRole('button',{name:'Update progress',exact:true})).toBeFocused();
   await page.reload();
-  await expect(card.locator('.character-weapon strong')).toHaveText('Updated weapon');
+  await expect(card.locator('.character-weapon strong')).toHaveText('Abysseram');
+});
+
+test('keeps the add control after the last character joins until the empty reveal is seen', async ({page}) => {
+  await page.evaluate(() => {
+    const characters = ['gustave','lune','maelle','sciel','verso','monoco'].map(id => ({id,name:id[0].toUpperCase()+id.slice(1),weapon:'Recorded weapon',level:10,points:0,invested:{vitality:0,might:0,agility:0,defence:0,luck:0},tracked:true,revealed:true}));
+    localStorage.setItem('expedition-33-guide.v1',JSON.stringify({version:1,activeId:'full',playthroughs:[{id:'full',name:'Full party',characters,nextRevealIndex:4,revision:0}]}));
+  });
+  await page.reload();
+  const add = page.getByRole('button',{name:/Add a character/});
+  await expect(add).toBeVisible();
+  await add.click();
+  await page.getByRole('button',{name:'Reveal character'}).click();
+  await expect(page.getByText('No additional character is available right now.')).toBeVisible();
+  await page.getByRole('button',{name:'Cancel'}).click();
+  await expect(add).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('expedition-33-guide.v1')!).playthroughs[0].revealComplete)).toBe(true);
+});
+
+test('searches weapons only after three letters and accepts only listed weapons', async ({page}) => {
+  await chooseStart(page);
+  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  const input = page.getByLabel('Equipped weapon',{exact:true});
+  await input.fill('Ab');
+  await expect(page.getByRole('option')).toHaveCount(0);
+  await input.fill('Aby');
+  await expect(page.getByRole('option')).toHaveText(['Abysseram']);
+  // Another character's weapons never appear in Gustave's search.
+  await input.fill('Col');
+  await expect(page.getByRole('option',{name:'Colim'})).toHaveCount(0);
+  await input.fill('Not a real weapon');
+  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await expect(input).toHaveValue('');
+  await expect(page.getByRole('alert')).toContainText('Enter the equipped weapon name');
+});
+
+test('highlights the attributes the equipped weapon scales with', async ({page}) => {
+  await chooseStart(page);
+  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await pickWeapon(page,'Aby','Abysseram');
+  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await pickWeapon(page,'Col','Colim');
+  await page.getByRole('button',{name:'Create playthrough',exact:true}).click();
+  const gustave = page.locator('.character-card').filter({has: page.getByRole('heading',{name:'Gustave',exact:true})});
+  await expect(gustave.locator('.stats__item.is-scaling .stats__label')).toHaveText(['Vitality','Defence']);
+  await expect(gustave.locator('.stats__item.is-scaling .scaling-grade')).toHaveText([/S$/, /A$/]);
+  await gustave.getByRole('button',{name:'Update progress',exact:true}).click();
+  await expect(page.locator('.attribute-row.is-scaling label')).toHaveText(['VitalityS','DefenceA']);
+  await expect(page.getByLabel('Vitality',{exact:true})).toBeVisible();
+  await pickWeapon(page,'Cru','Cruleram');
+  await expect(page.locator('.attribute-row.is-scaling label')).toHaveText(['DefenceS','LuckA']);
 });

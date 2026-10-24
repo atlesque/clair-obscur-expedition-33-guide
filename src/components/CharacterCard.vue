@@ -6,6 +6,7 @@ import Tag from 'primevue/tag';
 import { Swords } from '@lucide/vue';
 import { ATTRIBUTES } from '../domain/types';
 import { attributeLabels, characterAvatar } from '../domain/data';
+import { WEAPON_GRADE_LEVEL, weaponScaling } from '../domain/weapons';
 import type { Character } from '../domain/types';
 import { computed } from 'vue';
 
@@ -18,6 +19,7 @@ defineEmits<{
 }>();
 
 const avatarSrc = computed(() => characterAvatar(props.character.id));
+const scaling = computed(() => weaponScaling(props.character.id, props.character.weapon));
 </script>
 
 <template>
@@ -43,9 +45,9 @@ const avatarSrc = computed(() => characterAvatar(props.character.id));
         </div>
 
         <div class="stats" aria-label="Recorded attributes">
-          <div v-for="attribute in ATTRIBUTES" :key="attribute" class="stats__item">
+          <div v-for="attribute in ATTRIBUTES" :key="attribute" class="stats__item" :class="{ 'is-scaling': scaling[attribute] }">
             <span class="stats__label">{{ attributeLabels[attribute] }}</span>
-            <span class="stats__value">{{ character.invested[attribute] }}</span>
+            <span class="stats__value">{{ character.invested[attribute] }}<span v-if="scaling[attribute]" class="scaling-grade" :title="`${character.weapon} scales with ${attributeLabels[attribute]}: grade ${scaling[attribute]} at weapon level ${WEAPON_GRADE_LEVEL}`"><span class="sr-only">Weapon scaling grade </span>{{ scaling[attribute] }}</span></span>
           </div>
         </div>
 
@@ -70,6 +72,11 @@ const avatarSrc = computed(() => characterAvatar(props.character.id));
 </template>
 
 <style>
+.stats__item.is-scaling { margin: -6px -3px; padding: 6px 3px; border-radius: 6px; background: color-mix(in srgb, var(--gold) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent); }
+.stats__item.is-scaling .stats__label { color: var(--gold-strong); }
+.scaling-grade { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 4px; border-radius: 4px; background: var(--gold); color: var(--button-fg); font-family: var(--body); font-size: .66rem; font-weight: 700; line-height: 1; vertical-align: middle; }
+.stats__value .scaling-grade { margin-left: 5px; transform: translateY(-3px); }
+.attribute-row.is-scaling label, .setup-attribute.is-scaling label { color: var(--gold-strong); font-weight: 600; }
 .character-weapon { display: flex; align-items: center; gap: 10px; padding-top: 18px; color: var(--gold-strong); }
 .character-weapon > svg { flex: 0 0 auto; }
 .character-weapon > div { min-width: 0; }
