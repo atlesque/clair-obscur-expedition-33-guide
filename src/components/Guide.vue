@@ -14,6 +14,8 @@ import { readSetupDraft, writeSetupDraft } from '../domain/setup-url';
 import CharacterCard from './CharacterCard.vue';
 import FocusDialog from './FocusDialog.vue';
 import SetupPanel from './SetupPanel.vue';
+import AccountControl from './AccountControl.vue';
+import { createPlaySync } from '../domain/play-sync';
 
 type ThemeMode = 'auto' | 'light' | 'dark';
 
@@ -97,7 +99,24 @@ function handleExpeditionMenuKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape' && expeditionMenuOpen.value) closeExpeditionMenu();
 }
 
+const playSync = createPlaySync({
+  get: snapshot,
+  canSync: () => !unreadableSave && !setupCharacter.value && !revealStage.value && !deleteTarget.value && !expeditionMenuOpen.value,
+  apply: (data) => {
+    const result = data ? save(data) : clear();
+    if (!result.ok) { saveError.value = result.error ?? 'Could not store account progress on this device.'; return false; }
+    if (data?.playthroughs.some(run => run.name.endsWith('(recovered copy)') && !state.value?.playthroughs.some(existing => existing.id === run.id))) {
+      notice.value = 'Changes from another device overlapped. Both versions were kept; find the recovered copy in Expeditions.';
+    }
+    state.value = data;
+    if (data) { setupResume.value = null; writeSetupDraft(null); }
+    saveError.value = '';
+    return true;
+  },
+});
+
 onMounted(() => {
+  void playSync.start();
   if (state.value) writeSetupDraft(null);
   syncTheme();
   themeMediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)') ?? null;
@@ -107,6 +126,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  playSync.stop();
   themeMediaQuery?.removeEventListener('change', syncTheme);
   document.removeEventListener('pointerdown', handleOutsideExpeditionMenu);
   document.removeEventListener('keydown', handleExpeditionMenuKeydown);
@@ -121,6 +141,7 @@ function persist(before: SaveData | null) {
     return false;
   }
   saveError.value = '';
+  playSync.changed();
   return true;
 }
 
@@ -229,6 +250,7 @@ function deleteExpedition() {
       return;
     }
     state.value = null;
+    playSync.changed();
     deleteTarget.value = null;
     return;
   }
@@ -361,6 +383,7 @@ function cancelReveal() {
         </div>
 
         <div class="top-nav__actions">
+          <AccountControl :account="playSync.account" @sign-in="playSync.signIn" @sign-out="playSync.signOut" @sync="playSync.sync" />
           <div v-if="hasPlaythroughs" class="expedition-nav">
             <button
               type="button"

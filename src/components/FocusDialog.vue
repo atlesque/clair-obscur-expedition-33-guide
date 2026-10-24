@@ -15,7 +15,7 @@ function updateVisible(value: boolean) {
 onMounted(async () => {
   previous = document.activeElement as HTMLElement;
   await nextTick();
-  requestAnimationFrame(() => document.querySelector<HTMLElement>('.field-dialog input')?.focus());
+  document.querySelector<HTMLElement>('.field-dialog input')?.focus();
 });
 
 onUnmounted(() => previous?.focus());
