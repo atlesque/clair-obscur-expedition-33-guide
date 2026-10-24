@@ -1,8 +1,8 @@
 import { INITIAL_CHARACTERS, LATER_CHARACTERS } from './data';
 import { ATTRIBUTES } from './types';
-import type { Attributes } from './types';
+import type { Attributes, Lumina } from './types';
 
-export type SetupProgress = { level: number; points: number; invested: Attributes; weapon?: string; weaponLevel?: number };
+export type SetupProgress = { level: number; points: number; invested: Attributes; weapon?: string; weaponLevel?: number; lumina?: Lumina };
 export type SetupDraft = {
   version: 1;
   mode: 'new' | 'midway' | null;

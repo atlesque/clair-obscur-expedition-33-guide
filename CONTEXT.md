@@ -45,3 +45,12 @@ The equipped weapon's upgrade level (1 to 33). Every scaling grade rises by one 
 
 **Scaling attribute**:
 An attribute that adds attack power while a given weapon is equipped, shown with the weapon's scaling grade (D to S).
+
+**Lumina points**:
+A character's capacity for equipping Luminas, recorded as a total and the amount spent; the difference is shown as free. Older saves may not have recorded any.
+
+**Active combat party**:
+The up to three tracked characters marked as fighting. Other tracked characters are benched.
+
+**Colours of Lumina**:
+The party's unused count of the item that raises one character's Lumina total by one. A Colour plan suggests who should receive them, active combat party first, lowest Lumina total first. Like attribute advice, it stays pending until the player confirms using the Colours in-game.
