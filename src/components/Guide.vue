@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import Button from 'primevue/button';
-import NumberInput from './NumberInput.vue';
+import ProgressFields from './ProgressFields.vue';
+import PartyWizard from './PartyWizard.vue';
+import type { SetupProgress } from '../domain/setup-url';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import { Check, ChevronDown, Eye, Monitor, Moon, Pencil, Plus, Sun, Trash2 } from '@lucide/vue';
-import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels, compareCharacterIds } from '../domain/data';
-import { ATTRIBUTES, emptyAttributes } from '../domain/types';
+import { INITIAL_CHARACTERS, LATER_CHARACTERS, compareCharacterIds } from '../domain/data';
+import { emptyAttributes } from '../domain/types';
 import type { Character, Playthrough, SaveData } from '../domain/types';
 import { applyRecommendation, recommend, updateProgress } from '../domain/rules';
 import { clear, id, load, save } from '../domain/storage';
@@ -41,6 +43,7 @@ const notice = ref('');
 const revealStage = ref<'warning' | 'identity' | 'terminal' | null>(null);
 const setupCharacter = ref<Character | null>(null);
 const formError = ref('');
+const wizardMode = ref<'update' | 'advice' | null>(null);
 const addingCandidate = ref(false);
 const revealedCandidate = ref<(typeof LATER_CHARACTERS)[number] | null>(null);
 const draft = ref({ level: 1, points: 0, invested: emptyAttributes() });
@@ -54,6 +57,7 @@ const themeMode = ref<ThemeMode>(readThemeMode());
 const setupBlocked = computed(() => unreadableSave || Boolean(saveError.value));
 
 const active = computed(() => state.value?.playthroughs.find((p) => p.id === state.value?.activeId) ?? null);
+const trackedCharacters = computed(() => active.value?.characters.filter(item => item.tracked).sort((left, right) => compareCharacterIds(left.id, right.id)) ?? []);
 const hasPlaythroughs = computed(() => (state.value?.playthroughs.length ?? 0) > 0);
 const themeLabel = computed(() => THEME_LABELS[themeMode.value]);
 const nextThemeMode = computed(() => THEME_MODES[(THEME_MODES.indexOf(themeMode.value) + 1) % THEME_MODES.length]);
@@ -101,7 +105,7 @@ function handleExpeditionMenuKeydown(event: KeyboardEvent) {
 
 const playSync = createPlaySync({
   get: snapshot,
-  canSync: () => !unreadableSave && !setupCharacter.value && !revealStage.value && !deleteTarget.value && !expeditionMenuOpen.value,
+  canSync: () => !unreadableSave && !wizardMode.value && !setupCharacter.value && !revealStage.value && !deleteTarget.value && !expeditionMenuOpen.value,
   apply: (data) => {
     const result = data ? save(data) : clear();
     if (!result.ok) { saveError.value = result.error ?? 'Could not store account progress on this device.'; return false; }
@@ -302,10 +306,24 @@ function submitProgress() {
   }
 }
 
+function saveWizardProgress(character: Character, progress: SetupProgress) {
+  if (!active.value) return false;
+  const index = active.value.characters.findIndex(item => item.id === character.id);
+  if (index < 0) return false;
+  const changed = updateProgress(character, progress);
+  const before = snapshot();
+  active.value.characters[index] = changed;
+  active.value.revision++;
+  return persist(before);
+}
+function finishWizard() {
+  notice.value = wizardMode.value === 'update' ? 'Party progress review complete.' : 'Party advice review complete. Unconfirmed advice remains pending.';
+  wizardMode.value = null;
+}
 function advise(character: Character) {
   const before = snapshot();
   character.pending = recommend(character);
-  persist(before);
+  return persist(before);
 }
 
 function dismiss(character: Character) {
@@ -315,16 +333,18 @@ function dismiss(character: Character) {
 }
 
 function confirm(character: Character) {
-  if (!character.pending || !active.value) return;
+  if (!character.pending || !active.value) return false;
   const before = snapshot();
   const changed = applyRecommendation(character, character.pending);
   if (changed === character) {
     notice.value = 'That advice is stale; update progress before applying it.';
-    return;
+    return false;
   }
   Object.assign(character, changed);
   active.value.revision++;
-  if (persist(before)) notice.value = 'Applied recommendation recorded once.';
+  const saved = persist(before);
+  if (saved) notice.value = 'Applied recommendation recorded once.';
+  return saved;
 }
 
 function nextCharacterIndex(characters: Character[]) {
@@ -479,11 +499,15 @@ function cancelReveal() {
 
           <section class="party-heading" aria-labelledby="party-title">
             <span id="party-title" class="section-kicker">Recorded progress</span>
+            <div class="party-actions" aria-label="Party actions">
+              <Button label="Update progress" aria-label="Update progress for all characters" severity="secondary" outlined :disabled="!trackedCharacters.length" @click="wizardMode = 'update'" />
+              <Button label="Get advice" aria-label="Get advice for all characters" :disabled="!trackedCharacters.length" @click="wizardMode = 'advice'" />
+            </div>
           </section>
 
           <section class="party" aria-label="Tracked characters">
             <CharacterCard
-              v-for="character in active.characters.filter((item) => item.tracked).sort((left, right) => compareCharacterIds(left.id, right.id))"
+              v-for="character in trackedCharacters"
               :key="character.id"
               :character="character"
               @update="beginSetup"
@@ -498,6 +522,8 @@ function cancelReveal() {
             <span>Add a character</span>
           </Button>
         </template>
+
+        <PartyWizard v-if="wizardMode && active" :mode="wizardMode" :characters="trackedCharacters" :saveProgress="saveWizardProgress" :prepareAdvice="advise" :applyAdvice="confirm" @close="wizardMode = null" @complete="finishWizard" />
 
         <FocusDialog v-if="deleteTarget" title="Delete expedition?" @close="deleteTarget = null">
           <div class="manager-intro">
@@ -516,20 +542,7 @@ function cancelReveal() {
           </div>
           <Message v-if="formError" severity="error" :closable="false" class="dialog-error">{{ formError }}</Message>
           <form novalidate class="dialog-form" @submit.prevent="submitProgress">
-            <div class="field">
-              <label for="current-level-input">Current level</label>
-              <NumberInput v-model="draft.level" inputId="current-level-input" label="Current level" :min="1" :max="99" />
-            </div>
-            <div class="field">
-              <label for="available-points-input">Available attribute points</label>
-              <NumberInput v-model="draft.points" inputId="available-points-input" label="Available attribute points" />
-            </div>
-            <div class="attribute-grid">
-              <div v-for="attribute in ATTRIBUTES" :key="attribute" class="attribute-row">
-                <label :for="`edit-${attribute}`">{{ attributeLabels[attribute] }}</label>
-                <NumberInput v-model="draft.invested[attribute]" :inputId="`edit-${attribute}`" :label="attributeLabels[attribute]" :max="99" />
-              </div>
-            </div>
+            <ProgressFields :draft="draft" />
             <div class="dialog-actions">
               <Button type="button" label="Cancel" severity="secondary" text @click="cancelSetup" />
               <Button type="submit"><Check :size="17" :strokeWidth="1.8" aria-hidden="true" /><span>Save progress</span></Button>
@@ -658,6 +671,10 @@ button, input { font: inherit; }
 .p-button > svg { flex: 0 0 auto; }
 .action-notice { margin: 18px 0 0; border-radius: 6px; }
 .party-heading { display: flex; align-items: center; justify-content: space-between; gap: 32px; margin: 34px 0 18px; }
+.party-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.party-actions .p-button { min-height: 44px; font-size: .8rem; border-radius: 6px; }
+.party-actions .p-button:not(.p-button-outlined) { background: var(--gold); border-color: var(--gold); color: var(--button-fg); }
+.party-actions .p-button-outlined { color: var(--page-fg); border-color: var(--page-line); }
 .party { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .character-card.p-card { height: 100%; background: var(--card-bg); border: 1px solid var(--page-line); border-radius: 8px; color: var(--card-fg); box-shadow: none; }
 .character-card .p-card-body, .character-card .p-card-content { height: 100%; padding: 0; }
@@ -714,7 +731,8 @@ button, input { font: inherit; }
   .expedition-nav { flex: 1 1 auto; }
   .top-nav__expedition { width: 100%; }
   .expedition-menu { left: 0; right: auto; width: min(390px, calc(100vw - 28px)); }
-  .party-heading { margin-top: 28px; }
+  .party-heading { margin-top: 28px; flex-direction: column; align-items: stretch; gap: 14px; }
+  .party-actions .p-button { flex: 1 1 auto; justify-content: center; }
   .party { grid-template-columns: minmax(0, 1fr); }
   .character-card__inner { min-height: 0; padding: 21px; }
   .character-avatar { width: 58px; height: 58px; }
