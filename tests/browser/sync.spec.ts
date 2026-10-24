@@ -24,9 +24,11 @@ async function create(page: import('@playwright/test').Page) {
   await page.getByLabel('Playthrough name').fill('Across devices');
   await page.getByRole('button',{name:'Continue',exact:true}).click();
   await page.getByRole('button',{name:'Continue',exact:true}).click();
-  await page.getByLabel('Equipped weapon',{exact:true}).fill('First weapon');
+  await page.getByLabel('Equipped weapon',{exact:true}).fill('Aby');
+  await page.getByRole('option',{name:'Abysseram',exact:true}).click();
   await page.getByRole('button',{name:'Continue',exact:true}).click();
-  await page.getByLabel('Equipped weapon',{exact:true}).fill('Second weapon');
+  await page.getByLabel('Equipped weapon',{exact:true}).fill('Col');
+  await page.getByRole('option',{name:'Colim',exact:true}).click();
   await page.getByRole('button',{name:'Create playthrough',exact:true}).click();
 }
 const cloudSave = (cloud:Cloud) => (cloud.data as {save:{playthroughs:{characters:{level:number}[]}[]}})?.save;
@@ -42,7 +44,7 @@ test('uploads locally, restores on another device, and pulls later edits', async
     await b.goto(baseURL!);
     await expect(b.getByText('Across devices',{exact:true})).toBeVisible();
     await expect(b.getByRole('heading',{name:'Gustave',exact:true})).toBeVisible();
-    await expect(b.locator('.character-weapon strong').first()).toHaveText('First weapon');
+    await expect(b.locator('.character-weapon strong').first()).toHaveText('Abysseram · Level 1');
     await b.getByRole('button',{name:'Update progress',exact:true}).first().click();
     await b.getByRole('spinbutton',{name:'Current level',exact:true}).fill('20');
     await b.getByRole('button',{name:'Save progress',exact:true}).click();

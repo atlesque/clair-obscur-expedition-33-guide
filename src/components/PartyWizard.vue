@@ -55,7 +55,7 @@ function apply() {
 watch(() => character.value?.id, async () => {
   if (!character.value) return;
   error.value = '';
-  draft.value = { level: character.value.level, points: character.value.points, invested: { ...character.value.invested }, weapon: character.value.weapon ?? '' };
+  draft.value = { level: character.value.level, points: character.value.points, invested: { ...character.value.invested }, weapon: character.value.weapon ?? '', weaponLevel: character.value.weaponLevel ?? 1 };
   if (props.mode === 'advice') prepare();
   await nextTick();
   if (props.mode === 'update') document.getElementById(character.value?.weapon ? 'current-level-input' : 'equipped-weapon')?.focus();
@@ -73,7 +73,7 @@ watch(() => character.value?.id, async () => {
     <Message v-if="error" severity="error" :closable="false" class="dialog-error">{{ error }}</Message>
     <template v-if="character">
       <form v-if="mode === 'update'" novalidate class="dialog-form" @submit.prevent="save">
-        <ProgressFields :draft="draft" />
+        <ProgressFields :draft="draft" :characterId="character.id" />
         <div class="dialog-actions">
           <Button type="button" label="Cancel" severity="secondary" text @click="emit('close')" />
           <Button type="button" label="Skip character" severity="secondary" outlined @click="next" />

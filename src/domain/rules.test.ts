@@ -11,6 +11,13 @@ describe('progression public rules', () => {
     expect(updated.weapon).toBe('Recorded weapon');
     expect(updateProgress(updated, {level:11, points:3, invested:base.invested}).weapon).toBe('Recorded weapon');
   });
+  it('records and preserves the weapon level within the game range', () => {
+    const levelled = updateProgress(base, {level:10, points:0, invested:base.invested, weaponLevel:20});
+    expect(levelled.weaponLevel).toBe(20);
+    expect(updateProgress(levelled, {level:11, points:3, invested:base.invested}).weaponLevel).toBe(20);
+    expect(updateProgress(base, {level:10, points:0, invested:base.invested}).weaponLevel).toBeUndefined();
+    expect(() => updateProgress(base, {level:10, points:0, invested:base.invested, weaponLevel:34})).toThrow('weapon level');
+  });
   it('maps every playable character to a bundled portrait', () => {
     for (const characterId of ['gustave', 'lune', 'maelle', 'sciel', 'verso', 'monoco']) {
       expect(characterAvatar(characterId)).toBe(`/avatars/${characterId}.png`);

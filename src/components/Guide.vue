@@ -46,7 +46,7 @@ const formError = ref('');
 const wizardMode = ref<'update' | 'advice' | null>(null);
 const addingCandidate = ref(false);
 const revealedCandidate = ref<(typeof LATER_CHARACTERS)[number] | null>(null);
-const draft = ref({ level: 1, points: 0, invested: emptyAttributes(), weapon: '' });
+const draft = ref<SetupProgress>({ level: 1, points: 0, invested: emptyAttributes(), weapon: '', weaponLevel: 1 });
 const expeditionMenuOpen = ref(false);
 const renamingId = ref<string | null>(null);
 const renameDraft = ref('');
@@ -167,7 +167,7 @@ function makePlaythrough(name: string): Playthrough {
   };
 }
 
-function start(actual: Record<string, SetupProgress | null> = {}) {
+function start(actual: Record<string, SetupProgress | null> = {}, revealComplete = false) {
   if (unreadableSave || !selected.value.length) return;
   const before = snapshot();
   try {
@@ -183,7 +183,7 @@ function start(actual: Record<string, SetupProgress | null> = {}) {
       }
       return { id: key, name: d.name, level: 1, invested: { ...d.defaults }, points: 3, tracked: true, revealed: true };
     });
-    const p: Playthrough = { ...makePlaythrough(setupName.value), characters, nextRevealIndex: nextCharacterIndex(characters) };
+    const p: Playthrough = { ...makePlaythrough(setupName.value), characters, nextRevealIndex: nextCharacterIndex(characters), ...(revealComplete ? { revealComplete } : {}) };
     state.value = { version: 1, playthroughs: [p], activeId: p.id };
     if (persist(before)) {
       setupResume.value = null;
@@ -267,7 +267,7 @@ function deleteExpedition() {
 function beginSetup(character: Character) {
   formError.value = '';
   setupCharacter.value = character;
-  draft.value = { level: character.level, points: character.points, invested: { ...character.invested }, weapon: character.weapon ?? '' };
+  draft.value = { level: character.level, points: character.points, invested: { ...character.invested }, weapon: character.weapon ?? '', weaponLevel: character.weaponLevel ?? 1 };
 }
 
 function cancelSetup() {
@@ -361,6 +361,13 @@ function consentReveal() {
   const next = nextCharacterIndex(active.value.characters);
   revealStage.value = next < LATER_CHARACTERS.length ? 'identity' : 'terminal';
   if (next < LATER_CHARACTERS.length) revealedCandidate.value = LATER_CHARACTERS[next];
+  else if (!active.value.revealComplete) {
+    // The player has now seen that nobody else can join, so the add control can retire.
+    const before = snapshot();
+    active.value.revealComplete = true;
+    active.value.revision++;
+    persist(before);
+  }
 }
 
 function addLater() {
@@ -517,7 +524,7 @@ function cancelReveal() {
             />
           </section>
 
-          <Button severity="secondary" outlined class="add-character" @click="openReveal">
+          <Button v-if="!active?.revealComplete" severity="secondary" outlined class="add-character" @click="openReveal">
             <Plus :size="17" :strokeWidth="1.8" aria-hidden="true" />
             <span>Add a character</span>
           </Button>
@@ -542,7 +549,7 @@ function cancelReveal() {
           </div>
           <Message v-if="formError" severity="error" :closable="false" class="dialog-error">{{ formError }}</Message>
           <form novalidate class="dialog-form" @submit.prevent="submitProgress">
-            <ProgressFields :draft="draft" />
+            <ProgressFields :draft="draft" :characterId="setupCharacter.id" />
             <div class="dialog-actions">
               <Button type="button" label="Cancel" severity="secondary" text @click="cancelSetup" />
               <Button type="submit"><Check :size="17" :strokeWidth="1.8" aria-hidden="true" /><span>Save progress</span></Button>

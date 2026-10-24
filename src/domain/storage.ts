@@ -1,4 +1,5 @@
 import { ATTRIBUTES } from './types';
+import { isWeaponLevel } from './weapons';
 import type { Attributes, Character, Playthrough, Recommendation, SaveData } from './types';
 export const STORAGE_KEY = 'expedition-33-guide.v1';
 export type LoadResult = { kind: 'missing' } | { kind: 'loaded'; data: SaveData } | { kind: 'invalid'; error: string };
@@ -11,12 +12,12 @@ const isRecommendation = (value: unknown): value is Recommendation => {
 const isCharacter = (value: unknown): value is Character => {
   if (!value || typeof value !== 'object') return false;
   const c = value as Partial<Character>;
-  const level = c.level; const points = c.points; return typeof c.id === 'string' && typeof c.name === 'string' && (c.weapon === undefined || (typeof c.weapon === 'string' && c.weapon.trim().length > 0 && c.weapon.length <= 120)) && typeof level === 'number' && Number.isInteger(level) && level >= 1 && level <= 99 && isAttributes(c.invested) && typeof points === 'number' && Number.isInteger(points) && points >= 0 && typeof c.tracked === 'boolean' && typeof c.revealed === 'boolean' && (c.pending === undefined || isRecommendation(c.pending));
+  const level = c.level; const points = c.points; return typeof c.id === 'string' && typeof c.name === 'string' && (c.weapon === undefined || (typeof c.weapon === 'string' && c.weapon.trim().length > 0 && c.weapon.length <= 120)) && (c.weaponLevel === undefined || isWeaponLevel(c.weaponLevel)) && typeof level === 'number' && Number.isInteger(level) && level >= 1 && level <= 99 && isAttributes(c.invested) && typeof points === 'number' && Number.isInteger(points) && points >= 0 && typeof c.tracked === 'boolean' && typeof c.revealed === 'boolean' && (c.pending === undefined || isRecommendation(c.pending));
 };
 const isPlaythrough = (value: unknown): value is Playthrough => {
   if (!value || typeof value !== 'object') return false;
   const p = value as Partial<Playthrough>;
-  const nextRevealIndex = p.nextRevealIndex; const revision = p.revision; return typeof p.id === 'string' && typeof p.name === 'string' && Array.isArray(p.characters) && p.characters.every(isCharacter) && typeof nextRevealIndex === 'number' && Number.isInteger(nextRevealIndex) && nextRevealIndex >= 0 && typeof revision === 'number' && Number.isInteger(revision) && revision >= 0;
+  const nextRevealIndex = p.nextRevealIndex; const revision = p.revision; return typeof p.id === 'string' && typeof p.name === 'string' && Array.isArray(p.characters) && p.characters.every(isCharacter) && typeof nextRevealIndex === 'number' && Number.isInteger(nextRevealIndex) && nextRevealIndex >= 0 && (p.revealComplete === undefined || typeof p.revealComplete === 'boolean') && typeof revision === 'number' && Number.isInteger(revision) && revision >= 0;
 };
 export function isSaveData(data: unknown): data is SaveData { if (!data || typeof data !== 'object') return false; const d=data as Partial<SaveData>; return d.version===1 && Array.isArray(d.playthroughs) && typeof d.activeId==='string' && d.playthroughs.length>0 && d.playthroughs.every(isPlaythrough) && d.playthroughs.some(p=>p.id===d.activeId); }
 export function load(): LoadResult { try { const raw = localStorage.getItem(STORAGE_KEY); if (!raw) return {kind:'missing'}; const parsed: unknown = JSON.parse(raw); if (!isSaveData(parsed)) return {kind:'invalid', error:'The saved playthrough is unreadable or from an unsupported version. It was kept intact; review browser storage before continuing.'}; return {kind:'loaded', data: parsed}; } catch { return {kind:'invalid', error:'The saved playthrough could not be read. It was kept intact; check browser storage before continuing.'}; } }
