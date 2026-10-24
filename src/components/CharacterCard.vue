@@ -16,6 +16,8 @@ defineEmits<{
   update: [character: Character];
   confirm: [character: Character];
   dismiss: [character: Character];
+  'edit-weapon': [character: Character];
+  'remove-weapon': [character: Character];
 }>();
 
 const avatarSrc = computed(() => characterAvatar(props.character.id));
@@ -41,7 +43,11 @@ const scaling = computed(() => weaponScaling(props.character.id, props.character
 
         <div class="character-weapon">
           <Swords :size="16" :strokeWidth="1.8" aria-hidden="true" />
-          <div><span class="character-weapon__label">Equipped weapon</span><strong v-if="character.weapon">{{ character.weapon }}<span v-if="character.weaponLevel" class="character-weapon__level"> · Level {{ character.weaponLevel }}</span></strong><button v-else type="button" @click="$emit('update', character)">Add weapon</button></div>
+          <div><span class="character-weapon__label">Equipped weapon</span><strong v-if="character.weapon">{{ character.weapon }}<span v-if="character.weaponLevel" class="character-weapon__level"> · Level {{ character.weaponLevel }}</span></strong><button v-else type="button" @click="$emit('edit-weapon', character)">Add weapon</button></div>
+          <div v-if="character.weapon" class="character-weapon__actions">
+            <button type="button" :aria-label="`Change ${character.name}’s weapon`" @click="$emit('edit-weapon', character)">Change</button>
+            <button type="button" :aria-label="`Remove ${character.name}’s weapon`" @click="$emit('remove-weapon', character)">Remove</button>
+          </div>
         </div>
 
         <div class="stats" aria-label="Recorded attributes">
@@ -80,6 +86,7 @@ const scaling = computed(() => weaponScaling(props.character.id, props.character
 .character-weapon { display: flex; align-items: center; gap: 10px; padding-top: 18px; color: var(--gold-strong); }
 .character-weapon > svg { flex: 0 0 auto; }
 .character-weapon > div { min-width: 0; }
+.character-weapon__actions { display: flex; gap: 14px; margin-left: auto; flex: 0 0 auto; }
 .character-weapon__label { display: block; color: var(--card-muted); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
 .character-weapon strong { display: block; overflow-wrap: anywhere; color: var(--card-fg); font-size: .85rem; font-weight: 600; }
 .character-weapon__level { color: var(--card-muted); font-weight: 500; }

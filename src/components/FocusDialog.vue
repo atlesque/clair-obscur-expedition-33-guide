@@ -2,7 +2,7 @@
 import { nextTick, onMounted, onUnmounted, ref } from 'vue';
 import Dialog from 'primevue/dialog';
 
-const props = defineProps<{ title: string }>();
+const props = defineProps<{ title: string; focusWeapon?: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 const visible = ref(true);
 let previous: HTMLElement | null = null;
@@ -18,8 +18,10 @@ onMounted(async () => {
   fallback = previous?.closest('.character-card')?.querySelector<HTMLElement>('.character-card__actions button') ?? null;
   await nextTick();
   const weapon = document.querySelector<HTMLInputElement>('.field-dialog #equipped-weapon');
-  const target = weapon && weapon.value ? document.getElementById('current-level-input') : weapon;
+  const target = weapon && weapon.value && !props.focusWeapon ? document.getElementById('current-level-input') : weapon;
   (target ?? document.querySelector<HTMLElement>('.field-dialog input'))?.focus();
+  // Changing the weapon starts with the current name selected, so typing replaces it.
+  if (props.focusWeapon) weapon?.select();
 });
 
 onUnmounted(() => (previous?.isConnected ? previous : fallback)?.focus());

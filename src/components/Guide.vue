@@ -46,6 +46,7 @@ const formError = ref('');
 const wizardMode = ref<'update' | 'advice' | null>(null);
 const addingCandidate = ref(false);
 const revealedCandidate = ref<(typeof LATER_CHARACTERS)[number] | null>(null);
+const focusWeapon = ref(false);
 const draft = ref<SetupProgress>({ level: 1, points: 0, invested: emptyAttributes(), weapon: '', weaponLevel: 1 });
 const expeditionMenuOpen = ref(false);
 const renamingId = ref<string | null>(null);
@@ -266,6 +267,7 @@ function deleteExpedition() {
 
 function beginSetup(character: Character) {
   formError.value = '';
+  focusWeapon.value = false;
   setupCharacter.value = character;
   draft.value = { level: character.level, points: character.points, invested: { ...character.invested }, weapon: character.weapon ?? '', weaponLevel: character.weaponLevel ?? 1 };
 }
@@ -324,6 +326,20 @@ function advise(character: Character) {
   const before = snapshot();
   character.pending = recommend(character);
   return persist(before);
+}
+
+function editWeapon(character: Character) {
+  beginSetup(character);
+  focusWeapon.value = true;
+}
+
+function removeWeapon(character: Character) {
+  if (!active.value) return;
+  const before = snapshot();
+  delete character.weapon;
+  delete character.weaponLevel;
+  active.value.revision++;
+  if (persist(before)) notice.value = `Removed ${character.name}’s weapon. Add the one equipped in-game when you’re ready.`;
 }
 
 function dismiss(character: Character) {
@@ -521,6 +537,8 @@ function cancelReveal() {
               @advise="advise"
               @confirm="confirm"
               @dismiss="dismiss"
+              @edit-weapon="editWeapon"
+              @remove-weapon="removeWeapon"
             />
           </section>
 
@@ -542,7 +560,7 @@ function cancelReveal() {
           </div>
         </FocusDialog>
 
-        <FocusDialog v-if="setupCharacter" :title="`Update ${setupCharacter.name}`" @close="cancelSetup">
+        <FocusDialog v-if="setupCharacter" :title="`Update ${setupCharacter.name}`" :focusWeapon="focusWeapon" @close="cancelSetup">
           <div class="dialog-intro">
             <span class="section-kicker">Reconcile your save</span>
             <p>Enter what is true in-game. This replaces the recorded inputs and clears old advice.</p>

@@ -23,6 +23,7 @@ const search = (query: string) => { suggestions.value = searchWeapons(props.char
       :delay="0"
       :disabled="disabled"
       forceSelection
+      showClear
       autoOptionFocus
       :inputProps="{ autocomplete: 'off', required: true, maxlength: 120, 'aria-describedby': `${inputId}-help` }"
       placeholder="Type the first 3 letters"
