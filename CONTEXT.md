@@ -38,7 +38,10 @@ _Avoid_: Unlocked skills, skill tree
 The deliberate disclosure of a previously hidden character's identity after the player's explicit consent. Revealing a character does not itself add that character to a playthrough.
 
 **Equipped weapon**:
-The weapon currently equipped by a tracked character, chosen from that character's weapon list. The search only starts after three typed letters so the list never spoils weapons the player hasn't found. Required when onboarding or updating progress; older saves may hold a free-text name or none at all. A listed weapon carries its scaling attributes and their grades at weapon level 33.
+The weapon currently equipped by a tracked character, chosen from that character's weapon list. The search only starts after three typed letters so the list never spoils weapons the player hasn't found. Required when onboarding or updating progress; older saves may hold a free-text name or none at all. A listed weapon carries its scaling attributes and base grades, taken from the game data.
+
+**Weapon level**:
+The equipped weapon's upgrade level (1 to 33). Every scaling grade rises by one at weapon levels 4, 20 and 33, capped at S. Older saves may not have recorded one; they show the level 1 grade.
 
 **Scaling attribute**:
 An attribute that adds attack power while a given weapon is equipped, shown with the weapon's scaling grade (D to S).

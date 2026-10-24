@@ -55,7 +55,7 @@ function apply() {
 watch(() => character.value?.id, async () => {
   if (!character.value) return;
   error.value = '';
-  draft.value = { level: character.value.level, points: character.value.points, invested: { ...character.value.invested }, weapon: character.value.weapon ?? '' };
+  draft.value = { level: character.value.level, points: character.value.points, invested: { ...character.value.invested }, weapon: character.value.weapon ?? '', weaponLevel: character.value.weaponLevel ?? 1 };
   if (props.mode === 'advice') prepare();
   await nextTick();
   if (props.mode === 'update') document.getElementById(character.value?.weapon ? 'current-level-input' : 'equipped-weapon')?.focus();

@@ -44,7 +44,7 @@ test('uploads locally, restores on another device, and pulls later edits', async
     await b.goto(baseURL!);
     await expect(b.getByText('Across devices',{exact:true})).toBeVisible();
     await expect(b.getByRole('heading',{name:'Gustave',exact:true})).toBeVisible();
-    await expect(b.locator('.character-weapon strong').first()).toHaveText('Abysseram');
+    await expect(b.locator('.character-weapon strong').first()).toHaveText('Abysseram · Level 1');
     await b.getByRole('button',{name:'Update progress',exact:true}).first().click();
     await b.getByRole('spinbutton',{name:'Current level',exact:true}).fill('20');
     await b.getByRole('button',{name:'Save progress',exact:true}).click();

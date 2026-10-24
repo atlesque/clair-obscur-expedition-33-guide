@@ -46,7 +46,7 @@ const formError = ref('');
 const wizardMode = ref<'update' | 'advice' | null>(null);
 const addingCandidate = ref(false);
 const revealedCandidate = ref<(typeof LATER_CHARACTERS)[number] | null>(null);
-const draft = ref({ level: 1, points: 0, invested: emptyAttributes(), weapon: '' });
+const draft = ref<SetupProgress>({ level: 1, points: 0, invested: emptyAttributes(), weapon: '', weaponLevel: 1 });
 const expeditionMenuOpen = ref(false);
 const renamingId = ref<string | null>(null);
 const renameDraft = ref('');
@@ -267,7 +267,7 @@ function deleteExpedition() {
 function beginSetup(character: Character) {
   formError.value = '';
   setupCharacter.value = character;
-  draft.value = { level: character.level, points: character.points, invested: { ...character.invested }, weapon: character.weapon ?? '' };
+  draft.value = { level: character.level, points: character.points, invested: { ...character.invested }, weapon: character.weapon ?? '', weaponLevel: character.weaponLevel ?? 1 };
 }
 
 function cancelSetup() {

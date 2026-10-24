@@ -8,11 +8,11 @@ import type { CharacterId } from '../domain/types';
 import type { SetupProgress } from '../domain/setup-url';
 import { computed } from 'vue';
 const props = defineProps<{ draft: SetupProgress; characterId: CharacterId }>();
-const scaling = computed(() => weaponScaling(props.characterId, props.draft.weapon));
+const scaling = computed(() => weaponScaling(props.characterId, props.draft.weapon, props.draft.weaponLevel));
 </script>
 
 <template>
-  <WeaponField v-model="draft.weapon" :characterId="characterId" />
+  <WeaponField v-model="draft.weapon" :level="draft.weaponLevel ?? 1" @update:level="draft.weaponLevel = $event" :characterId="characterId" />
   <div class="field">
     <label for="current-level-input">Current level</label>
     <NumberInput v-model="draft.level" inputId="current-level-input" label="Current level" :min="1" :max="99" />
@@ -23,7 +23,7 @@ const scaling = computed(() => weaponScaling(props.characterId, props.draft.weap
   </div>
   <div class="attribute-grid">
     <div v-for="attribute in ATTRIBUTES" :key="attribute" class="attribute-row" :class="{ 'is-scaling': scaling[attribute] }">
-      <label :for="`edit-${attribute}`">{{ attributeLabels[attribute] }}<span v-if="scaling[attribute]" class="scaling-grade" aria-hidden="true" :title="`Weapon scales with ${attributeLabels[attribute]} (grade ${scaling[attribute]} at weapon level 33)`">{{ scaling[attribute] }}</span></label>
+      <label :for="`edit-${attribute}`">{{ attributeLabels[attribute] }}<span v-if="scaling[attribute]" class="scaling-grade" aria-hidden="true" :title="`Weapon scales with ${attributeLabels[attribute]} (grade ${scaling[attribute]})`">{{ scaling[attribute] }}</span></label>
       <NumberInput v-model="draft.invested[attribute]" :inputId="`edit-${attribute}`" :label="attributeLabels[attribute]" :max="99" />
     </div>
   </div>

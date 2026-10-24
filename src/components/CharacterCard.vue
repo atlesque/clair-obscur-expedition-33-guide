@@ -6,7 +6,7 @@ import Tag from 'primevue/tag';
 import { Swords } from '@lucide/vue';
 import { ATTRIBUTES } from '../domain/types';
 import { attributeLabels, characterAvatar } from '../domain/data';
-import { WEAPON_GRADE_LEVEL, weaponScaling } from '../domain/weapons';
+import { weaponScaling } from '../domain/weapons';
 import type { Character } from '../domain/types';
 import { computed } from 'vue';
 
@@ -19,7 +19,7 @@ defineEmits<{
 }>();
 
 const avatarSrc = computed(() => characterAvatar(props.character.id));
-const scaling = computed(() => weaponScaling(props.character.id, props.character.weapon));
+const scaling = computed(() => weaponScaling(props.character.id, props.character.weapon, props.character.weaponLevel));
 </script>
 
 <template>
@@ -41,13 +41,13 @@ const scaling = computed(() => weaponScaling(props.character.id, props.character
 
         <div class="character-weapon">
           <Swords :size="16" :strokeWidth="1.8" aria-hidden="true" />
-          <div><span class="character-weapon__label">Equipped weapon</span><strong v-if="character.weapon">{{ character.weapon }}</strong><button v-else type="button" @click="$emit('update', character)">Add weapon</button></div>
+          <div><span class="character-weapon__label">Equipped weapon</span><strong v-if="character.weapon">{{ character.weapon }}<span v-if="character.weaponLevel" class="character-weapon__level"> · Level {{ character.weaponLevel }}</span></strong><button v-else type="button" @click="$emit('update', character)">Add weapon</button></div>
         </div>
 
         <div class="stats" aria-label="Recorded attributes">
           <div v-for="attribute in ATTRIBUTES" :key="attribute" class="stats__item" :class="{ 'is-scaling': scaling[attribute] }">
             <span class="stats__label">{{ attributeLabels[attribute] }}</span>
-            <span class="stats__value">{{ character.invested[attribute] }}<span v-if="scaling[attribute]" class="scaling-grade" :title="`${character.weapon} scales with ${attributeLabels[attribute]}: grade ${scaling[attribute]} at weapon level ${WEAPON_GRADE_LEVEL}`"><span class="sr-only">Weapon scaling grade </span>{{ scaling[attribute] }}</span></span>
+            <span class="stats__value">{{ character.invested[attribute] }}<span v-if="scaling[attribute]" class="scaling-grade" :title="`${character.weapon} scales with ${attributeLabels[attribute]}: grade ${scaling[attribute]}${character.weaponLevel ? ` at weapon level ${character.weaponLevel}` : ' (weapon level not recorded, showing the level 1 grade)'}`"><span class="sr-only">Weapon scaling grade </span>{{ scaling[attribute] }}</span></span>
           </div>
         </div>
 
@@ -82,6 +82,7 @@ const scaling = computed(() => weaponScaling(props.character.id, props.character
 .character-weapon > div { min-width: 0; }
 .character-weapon__label { display: block; color: var(--card-muted); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
 .character-weapon strong { display: block; overflow-wrap: anywhere; color: var(--card-fg); font-size: .85rem; font-weight: 600; }
+.character-weapon__level { color: var(--card-muted); font-weight: 500; }
 .character-weapon button { padding: 0; min-height: 28px; border: 0; background: transparent; color: var(--gold-strong); font-size: .85rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .character-weapon button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 </style>

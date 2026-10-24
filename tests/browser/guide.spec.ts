@@ -8,7 +8,7 @@ async function pickWeapon(page: import('@playwright/test').Page, prefix: string,
   await page.getByRole('option', {name, exact:true}).click();
 }
 // One three-letter prefix per weapon pool, so the helper works for whichever character is on screen.
-const POOL_PICKS = [['Aby','Abysseram'],['Col','Colim'],['Bat','Battlum'],['Alg','Algueron'],['Nus','Nusaro']];
+const POOL_PICKS = [['Aby','Abysseram'],['Col','Colim'],['Bat','Battlum'],['Alg','Algueron'],['Cor','Corpeso'],['Nus','Nusaro']];
 async function enterWeapon(page: import('@playwright/test').Page) {
   const input = page.getByLabel('Equipped weapon', {exact:true});
   if (!(await input.count()) || await input.inputValue()) return;
@@ -310,9 +310,9 @@ test('requires equipped weapons in new onboarding and restores them from the URL
   await page.getByRole('button',{name:'Continue',exact:true}).click();
   await expect(page.getByLabel('Equipped weapon',{exact:true})).toHaveValue('Colim');
   await page.getByRole('button',{name:'Create playthrough',exact:true}).click();
-  await expect(page.locator('.character-weapon strong')).toHaveText(['Abysseram','Colim']);
+  await expect(page.locator('.character-weapon strong')).toHaveText(['Abysseram · Level 1','Colim · Level 1']);
   await page.reload();
-  await expect(page.locator('.character-weapon strong')).toHaveText(['Abysseram','Colim']);
+  await expect(page.locator('.character-weapon strong')).toHaveText(['Abysseram · Level 1','Colim · Level 1']);
 });
 
 test('keeps older saves readable and requires a weapon when updating them', async ({page}) => {
@@ -330,10 +330,10 @@ test('keeps older saves readable and requires a weapon when updating them', asyn
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('equipped weapon');
   await pickWeapon(page,'aby','Abysseram');
   await page.getByRole('button',{name:'Save progress',exact:true}).click();
-  await expect(card.locator('.character-weapon strong')).toHaveText('Abysseram');
+  await expect(card.locator('.character-weapon strong')).toHaveText('Abysseram · Level 1');
   await expect(card.getByRole('button',{name:'Update progress',exact:true})).toBeFocused();
   await page.reload();
-  await expect(card.locator('.character-weapon strong')).toHaveText('Abysseram');
+  await expect(card.locator('.character-weapon strong')).toHaveText('Abysseram · Level 1');
 });
 
 test('keeps the add control after the last character joins until the empty reveal is seen', async ({page}) => {
@@ -378,10 +378,16 @@ test('highlights the attributes the equipped weapon scales with', async ({page})
   await page.getByRole('button',{name:'Create playthrough',exact:true}).click();
   const gustave = page.locator('.character-card').filter({has: page.getByRole('heading',{name:'Gustave',exact:true})});
   await expect(gustave.locator('.stats__item.is-scaling .stats__label')).toHaveText(['Vitality','Defence']);
-  await expect(gustave.locator('.stats__item.is-scaling .scaling-grade')).toHaveText([/S$/, /A$/]);
+  await expect(gustave.locator('.stats__item.is-scaling .scaling-grade')).toHaveText([/C$/, /D$/]);
   await gustave.getByRole('button',{name:'Update progress',exact:true}).click();
-  await expect(page.locator('.attribute-row.is-scaling label')).toHaveText(['VitalityS','DefenceA']);
+  await expect(page.locator('.attribute-row.is-scaling label')).toHaveText(['VitalityC','DefenceD']);
   await expect(page.getByLabel('Vitality',{exact:true})).toBeVisible();
+  // Grades rise by one at weapon levels 4, 20 and 33.
+  await page.getByRole('spinbutton',{name:'Weapon level',exact:true}).fill('20');
+  await expect(page.locator('.attribute-row.is-scaling label')).toHaveText(['VitalityA','DefenceB']);
   await pickWeapon(page,'Cru','Cruleram');
-  await expect(page.locator('.attribute-row.is-scaling label')).toHaveText(['DefenceS','LuckA']);
+  await expect(page.locator('.attribute-row.is-scaling label')).toHaveText(['DefenceA','LuckB']);
+  await page.getByRole('button',{name:'Save progress',exact:true}).click();
+  await expect(gustave.locator('.character-weapon strong')).toHaveText('Cruleram · Level 20');
+  await expect(gustave.locator('.stats__item.is-scaling .scaling-grade')).toHaveText([/A$/, /B$/]);
 });
