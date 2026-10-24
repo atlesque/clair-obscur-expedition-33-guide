@@ -391,6 +391,26 @@ test('highlights the attributes the equipped weapon scales with', async ({page})
   await expect(gustave.locator('.character-weapon strong')).toHaveText('Cruleram · Level 20');
   await expect(gustave.locator('.stats__item.is-scaling .scaling-grade')).toHaveText([/A$/, /B$/]);
 });
+test('records Lumina points and spends Colours of Lumina on the active combat party first', async ({page}) => {
+  await createNew(page);
+  await page.locator('.character-card').getByRole('button',{name:'Update progress'}).first().click();
+  await page.getByRole('spinbutton',{name:'Total Lumina points',exact:true}).fill('10');
+  await page.getByRole('spinbutton',{name:'Spent Lumina points',exact:true}).fill('7');
+  await saveCharacter(page);
+  await expect(page.locator('.character-card').first().getByText('3 free')).toBeVisible();
+  await page.getByRole('button',{name:'Benched'}).last().click();
+  await expect(page.getByText('Active combat party: Lune')).toBeVisible();
+  await page.getByRole('button',{name:'Update Colours'}).click();
+  await page.getByRole('spinbutton',{name:'Unused Colours of Lumina',exact:true}).fill('2');
+  await page.getByRole('button',{name:'Save',exact:true}).click();
+  await page.getByRole('button',{name:'Suggest how to spend'}).click();
+  await expect(page.locator('.colour-panel .recommendation__spend')).toHaveText('+2 Lune');
+  await page.reload();
+  await page.getByRole('button',{name:"I've used these"}).click();
+  await expect(page.getByText('Colours of Lumina recorded once.')).toBeVisible();
+  await expect(page.locator('.character-card').last().getByText('2 free')).toBeVisible();
+  await expect(page.locator('.colour-panel__count')).toHaveText('0 unused');
+});
 
 test('changes and removes the equipped weapon from the character card', async ({page}) => {
   await createNew(page);

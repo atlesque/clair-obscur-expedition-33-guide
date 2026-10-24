@@ -11,6 +11,8 @@ import { INITIAL_CHARACTERS, LATER_CHARACTERS, compareCharacterIds } from '../do
 import { emptyAttributes } from '../domain/types';
 import type { Character, Playthrough, SaveData } from '../domain/types';
 import { applyRecommendation, recommend, updateProgress } from '../domain/rules';
+import { MAX_ACTIVE_PARTY, activeParty, applyColourPlan, planColours } from '../domain/lumina';
+import ColourPanel from './ColourPanel.vue';
 import { clear, id, load, save } from '../domain/storage';
 import { readSetupDraft, writeSetupDraft } from '../domain/setup-url';
 import CharacterCard from './CharacterCard.vue';
@@ -59,6 +61,7 @@ const setupBlocked = computed(() => unreadableSave || Boolean(saveError.value));
 
 const active = computed(() => state.value?.playthroughs.find((p) => p.id === state.value?.activeId) ?? null);
 const trackedCharacters = computed(() => active.value?.characters.filter(item => item.tracked).sort((left, right) => compareCharacterIds(left.id, right.id)) ?? []);
+const partyFull = computed(() => activeParty(trackedCharacters.value).length >= MAX_ACTIVE_PARTY);
 const hasPlaythroughs = computed(() => (state.value?.playthroughs.length ?? 0) > 0);
 const themeLabel = computed(() => THEME_LABELS[themeMode.value]);
 const nextThemeMode = computed(() => THEME_MODES[(THEME_MODES.indexOf(themeMode.value) + 1) % THEME_MODES.length]);
@@ -269,7 +272,7 @@ function beginSetup(character: Character) {
   formError.value = '';
   focusWeapon.value = false;
   setupCharacter.value = character;
-  draft.value = { level: character.level, points: character.points, invested: { ...character.invested }, weapon: character.weapon ?? '', weaponLevel: character.weaponLevel ?? 1 };
+  draft.value = { level: character.level, points: character.points, invested: { ...character.invested }, weapon: character.weapon ?? '', weaponLevel: character.weaponLevel ?? 1, lumina: { ...(character.lumina ?? { total: 0, spent: 0 }) } };
 }
 
 function cancelSetup() {
@@ -361,6 +364,50 @@ function confirm(character: Character) {
   const saved = persist(before);
   if (saved) notice.value = 'Applied recommendation recorded once.';
   return saved;
+}
+
+function toggleParty(character: Character) {
+  if (!active.value || (!character.inParty && partyFull.value)) return;
+  const before = snapshot();
+  character.inParty = !character.inParty;
+  active.value.colourPlan = undefined;
+  active.value.revision++;
+  persist(before);
+}
+
+function saveColours(colours: number) {
+  if (!active.value || !Number.isInteger(colours) || colours < 0) return;
+  const before = snapshot();
+  active.value.colours = colours;
+  active.value.colourPlan = undefined;
+  active.value.revision++;
+  persist(before);
+}
+
+function suggestColours() {
+  if (!active.value) return;
+  const before = snapshot();
+  active.value.colourPlan = planColours(active.value);
+  persist(before);
+}
+
+function dismissColours() {
+  if (!active.value) return;
+  const before = snapshot();
+  active.value.colourPlan = undefined;
+  persist(before);
+}
+
+function confirmColours() {
+  if (!active.value?.colourPlan) return;
+  const changed = applyColourPlan(active.value, active.value.colourPlan);
+  if (changed === active.value) {
+    notice.value = 'That Colour plan is stale; update progress before applying it.';
+    return;
+  }
+  const before = snapshot();
+  Object.assign(active.value, changed, { revision: active.value.revision + 1 });
+  if (persist(before)) notice.value = 'Colours of Lumina recorded once.';
 }
 
 function nextCharacterIndex(characters: Character[]) {
@@ -533,7 +580,9 @@ function cancelReveal() {
               v-for="character in trackedCharacters"
               :key="character.id"
               :character="character"
+              :partyFull="partyFull"
               @update="beginSetup"
+              @toggle-party="toggleParty"
               @advise="advise"
               @confirm="confirm"
               @dismiss="dismiss"
@@ -541,6 +590,8 @@ function cancelReveal() {
               @remove-weapon="removeWeapon"
             />
           </section>
+
+          <ColourPanel :playthrough="active" @save="saveColours" @suggest="suggestColours" @confirm="confirmColours" @dismiss="dismissColours" />
 
           <Button v-if="!active?.revealComplete" severity="secondary" outlined class="add-character" @click="openReveal">
             <Plus :size="17" :strokeWidth="1.8" aria-hidden="true" />

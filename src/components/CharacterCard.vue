@@ -3,24 +3,28 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Message from 'primevue/message';
 import Tag from 'primevue/tag';
-import { Swords } from '@lucide/vue';
+import { Sparkles, Swords } from '@lucide/vue';
 import { ATTRIBUTES } from '../domain/types';
 import { attributeLabels, characterAvatar } from '../domain/data';
 import { weaponScaling } from '../domain/weapons';
+import { MAX_ACTIVE_PARTY, freeLumina } from '../domain/lumina';
 import type { Character } from '../domain/types';
 import { computed } from 'vue';
 
-const props = defineProps<{ character: Character }>();
+const props = defineProps<{ character: Character; partyFull?: boolean }>();
 defineEmits<{
   advise: [character: Character];
   update: [character: Character];
   confirm: [character: Character];
   dismiss: [character: Character];
+  toggleParty: [character: Character];
   'edit-weapon': [character: Character];
   'remove-weapon': [character: Character];
 }>();
 
 const avatarSrc = computed(() => characterAvatar(props.character.id));
+const free = computed(() => freeLumina(props.character));
+const partyLocked = computed(() => !props.character.inParty && props.partyFull);
 const scaling = computed(() => weaponScaling(props.character.id, props.character.weapon, props.character.weaponLevel));
 </script>
 
@@ -33,11 +37,15 @@ const scaling = computed(() => weaponScaling(props.character.id, props.character
             <img class="character-avatar" :src="avatarSrc" :alt="`${character.name} avatar`" width="64" height="64" />
             <div>
             <h2>{{ character.name }}</h2>
+            <button type="button" class="party-toggle" :class="{ 'is-active': character.inParty }" :aria-pressed="character.inParty ? 'true' : 'false'" :disabled="partyLocked"
+              :title="partyLocked ? `The active combat party already has ${MAX_ACTIVE_PARTY} fighters` : character.inParty ? 'Fighting in the active combat party' : 'Mark as fighting in the active combat party'"
+              @click="$emit('toggleParty', character)">{{ character.inParty ? 'In combat party' : 'Benched' }}</button>
             </div>
           </div>
           <div class="character-card__badges">
             <Tag :value="`LV ${character.level}`" class="level-tag" />
             <Tag :value="`${character.points} AP`" class="points-tag" :aria-label="`${character.points} attribute points available`" :title="`${character.points} attribute points available`" />
+            <Tag v-if="free !== undefined" :value="`${free} LP`" class="points-tag" :aria-label="`${free} Lumina points free`" :title="`${free} Lumina points free`" />
           </div>
         </div>
 
@@ -47,6 +55,16 @@ const scaling = computed(() => weaponScaling(props.character.id, props.character
           <div v-if="character.weapon" class="character-weapon__actions">
             <button type="button" :aria-label="`Change ${character.name}’s weapon`" @click="$emit('edit-weapon', character)">Change</button>
             <button type="button" :aria-label="`Remove ${character.name}’s weapon`" @click="$emit('remove-weapon', character)">Remove</button>
+          </div>
+        </div>
+
+        <div class="character-lumina">
+          <Sparkles :size="16" :strokeWidth="1.8" aria-hidden="true" />
+          <div>
+            <span class="character-weapon__label">Lumina points</span>
+            <strong v-if="character.lumina">{{ free }} free<span class="character-weapon__level"> · {{ character.lumina.spent }} of {{ character.lumina.total }} spent</span></strong>
+            <button v-else type="button" @click="$emit('update', character)">Add Lumina points</button>
+            <small v-if="free">Equip more Luminas from Pictos you’ve mastered to use them.</small>
           </div>
         </div>
 
@@ -90,6 +108,14 @@ const scaling = computed(() => weaponScaling(props.character.id, props.character
 .character-weapon__label { display: block; color: var(--card-muted); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
 .character-weapon strong { display: block; overflow-wrap: anywhere; color: var(--card-fg); font-size: .85rem; font-weight: 600; }
 .character-weapon__level { color: var(--card-muted); font-weight: 500; }
-.character-weapon button { padding: 0; min-height: 28px; border: 0; background: transparent; color: var(--gold-strong); font-size: .85rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.character-weapon button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.character-lumina { display: flex; align-items: flex-start; gap: 10px; padding-top: 14px; color: var(--gold-strong); }
+.character-lumina > svg { flex: 0 0 auto; margin-top: 2px; }
+.character-lumina strong { display: block; color: var(--card-fg); font-size: .85rem; font-weight: 600; }
+.character-lumina small { display: block; margin-top: 4px; color: var(--card-muted); font-size: .72rem; line-height: 1.45; }
+.party-toggle { margin-top: 6px; min-height: 26px; padding: 3px 10px; border: 1px solid var(--card-line); border-radius: 999px; background: transparent; color: var(--card-muted); font-size: .7rem; font-weight: 600; letter-spacing: .04em; cursor: pointer; }
+.party-toggle.is-active { border-color: var(--gold); background: var(--gold); color: var(--button-fg); }
+.party-toggle:disabled { opacity: .45; cursor: default; }
+.party-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.character-weapon button, .character-lumina button { padding: 0; min-height: 28px; border: 0; background: transparent; color: var(--gold-strong); font-size: .85rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.character-weapon button:focus-visible, .character-lumina button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 </style>
