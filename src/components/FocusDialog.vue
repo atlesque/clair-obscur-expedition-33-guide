@@ -6,6 +6,7 @@ const props = defineProps<{ title: string }>();
 const emit = defineEmits<{ close: [] }>();
 const visible = ref(true);
 let previous: HTMLElement | null = null;
+let fallback: HTMLElement | null = null;
 
 function updateVisible(value: boolean) {
   visible.value = value;
@@ -14,11 +15,14 @@ function updateVisible(value: boolean) {
 
 onMounted(async () => {
   previous = document.activeElement as HTMLElement;
+  fallback = previous?.closest('.character-card')?.querySelector<HTMLElement>('.character-card__actions button') ?? null;
   await nextTick();
-  document.querySelector<HTMLElement>('.field-dialog input')?.focus();
+  const weapon = document.querySelector<HTMLInputElement>('.field-dialog #equipped-weapon');
+  const target = weapon && weapon.value ? document.getElementById('current-level-input') : weapon;
+  (target ?? document.querySelector<HTMLElement>('.field-dialog input'))?.focus();
 });
 
-onUnmounted(() => previous?.focus());
+onUnmounted(() => (previous?.isConnected ? previous : fallback)?.focus());
 </script>
 
 <template>

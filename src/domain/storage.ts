@@ -11,7 +11,7 @@ const isRecommendation = (value: unknown): value is Recommendation => {
 const isCharacter = (value: unknown): value is Character => {
   if (!value || typeof value !== 'object') return false;
   const c = value as Partial<Character>;
-  const level = c.level; const points = c.points; return typeof c.id === 'string' && typeof c.name === 'string' && typeof level === 'number' && Number.isInteger(level) && level >= 1 && level <= 99 && isAttributes(c.invested) && typeof points === 'number' && Number.isInteger(points) && points >= 0 && typeof c.tracked === 'boolean' && typeof c.revealed === 'boolean' && (c.pending === undefined || isRecommendation(c.pending));
+  const level = c.level; const points = c.points; return typeof c.id === 'string' && typeof c.name === 'string' && (c.weapon === undefined || (typeof c.weapon === 'string' && c.weapon.trim().length > 0 && c.weapon.length <= 120)) && typeof level === 'number' && Number.isInteger(level) && level >= 1 && level <= 99 && isAttributes(c.invested) && typeof points === 'number' && Number.isInteger(points) && points >= 0 && typeof c.tracked === 'boolean' && typeof c.revealed === 'boolean' && (c.pending === undefined || isRecommendation(c.pending));
 };
 const isPlaythrough = (value: unknown): value is Playthrough => {
   if (!value || typeof value !== 'object') return false;

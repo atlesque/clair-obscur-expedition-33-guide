@@ -2,7 +2,7 @@ import { INITIAL_CHARACTERS, LATER_CHARACTERS } from './data';
 import { ATTRIBUTES } from './types';
 import type { Attributes } from './types';
 
-export type SetupProgress = { level: number; points: number; invested: Attributes };
+export type SetupProgress = { level: number; points: number; invested: Attributes; weapon?: string };
 export type SetupDraft = {
   version: 1;
   mode: 'new' | 'midway' | null;
@@ -30,9 +30,9 @@ export function readSetupDraft(search: string): SetupDraft | null {
     ];
     if (!Array.isArray(data.selected) || data.selected.some(id => typeof id !== 'string' || !available.includes(id)) || new Set(data.selected).size !== data.selected.length || !isObject(data.progress)) return null;
     const selected = data.selected;
-    const screens = ['mode', ...(data.mode ? ['name', 'party', ...(data.mode === 'midway' ? data.selected : [])] : [])];
+    const screens = ['mode', ...(data.mode ? ['name', 'party', ...data.selected] : [])];
     if (typeof data.screen !== 'string' || !screens.includes(data.screen)) return null;
-    if (Object.entries(data.progress).some(([id, progress]) => !selected.includes(id) || !isObject(progress) || !isNumber(progress.level) || !isNumber(progress.points) || !isObject(progress.invested) || ATTRIBUTES.some(attribute => !isNumber((progress.invested as Record<string, unknown>)[attribute])))) return null;
+    if (Object.entries(data.progress).some(([id, progress]) => !selected.includes(id) || !isObject(progress) || !isNumber(progress.level) || !isNumber(progress.points) || (progress.weapon !== undefined && (typeof progress.weapon !== 'string' || progress.weapon.length > 120)) || !isObject(progress.invested) || ATTRIBUTES.some(attribute => !isNumber((progress.invested as Record<string, unknown>)[attribute])))) return null;
     return data as SetupDraft;
   } catch {
     return null;

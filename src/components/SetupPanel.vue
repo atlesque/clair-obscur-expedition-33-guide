@@ -10,6 +10,7 @@ import { ATTRIBUTES, emptyAttributes } from '../domain/types';
 import { writeSetupDraft } from '../domain/setup-url';
 import type { SetupDraft, SetupProgress } from '../domain/setup-url';
 import NumberInput from './NumberInput.vue';
+import WeaponField from './WeaponField.vue';
 
 type Progress = SetupProgress;
 const props = defineProps<{ name: string; selected: string[]; resume?: SetupDraft | null; disabled: boolean; blocked: boolean }>();
@@ -28,18 +29,18 @@ const visibleCharacters = computed(() => [
   ...Object.entries(INITIAL_CHARACTERS).map(([id, item]) => ({ id, ...item })),
   ...(mode.value === 'midway' ? LATER_CHARACTERS.slice(0, revealedCount.value) : []),
 ].sort((left, right) => compareCharacterIds(left.id, right.id)));
-const steps = computed(() => ['mode', 'name', 'party', ...(mode.value === 'midway' ? [...props.selected].sort(compareCharacterIds) : [])]);
+const steps = computed(() => ['mode', 'name', 'party', ...[...props.selected].sort(compareCharacterIds)]);
 step.value = Math.max(0, steps.value.indexOf(props.resume?.screen ?? 'mode'));
 const current = computed(() => steps.value[step.value]);
 const character = computed(() => visibleCharacters.value.find(item => item.id === current.value)!);
 const progress = computed(() => drafts.value[current.value]);
 const isBlocked = computed(() => props.blocked || props.disabled);
-const lastStep = computed(() => current.value === 'party' ? mode.value === 'new' : step.value > 2 && step.value === steps.value.length - 1);
-const heading = computed(() => current.value === 'mode' ? 'Where are you starting?' : current.value === 'name' ? 'Name your expedition' : current.value === 'party' ? 'Who’s in your party?' : `${character.value.name}’s progress`);
-const description = computed(() => current.value === 'mode' ? 'Choose a starting point for your expedition.' : current.value === 'name' ? 'Give this playthrough a name so you can find it later.' : current.value === 'party' ? mode.value === 'midway' ? 'Choose everyone who is already in your party. Reveal later characters below, one at a time.' : 'Choose the initial characters you want to track. You can reveal others later.' : 'Enter the level, available points, and invested attributes shown in-game.');
+const lastStep = computed(() => step.value > 2 && step.value === steps.value.length - 1);
+const heading = computed(() => current.value === 'mode' ? 'Where are you starting?' : current.value === 'name' ? 'Name your expedition' : current.value === 'party' ? 'Who’s in your party?' : `${character.value.name}’s ${mode.value === 'new' ? 'weapon' : 'progress'}`);
+const description = computed(() => current.value === 'mode' ? 'Choose a starting point for your expedition.' : current.value === 'name' ? 'Give this playthrough a name so you can find it later.' : current.value === 'party' ? mode.value === 'midway' ? 'Choose everyone who is already in your party. Reveal later characters below, one at a time.' : 'Choose the initial characters you want to track. You can reveal others later.' : mode.value === 'new' ? 'Enter the name of the weapon equipped in-game.' : 'Enter the equipped weapon, level, available points, and invested attributes shown in-game.');
 
 function ensureDraft(key: string) {
-  if (!drafts.value[key]) drafts.value[key] = { level: 1, points: 0, invested: emptyAttributes() };
+  if (!drafts.value[key]) drafts.value[key] = { level: 1, points: 0, invested: emptyAttributes(), weapon: '' };
 }
 function revealNext() {
   if (revealedCount.value < LATER_CHARACTERS.length) revealedCount.value++;
@@ -58,14 +59,26 @@ function advance() {
   error.value = '';
   if (current.value === 'name' && !props.name.trim()) { error.value = 'Enter a name for this expedition.'; return; }
   if (current.value === 'party' && !props.selected.length) { error.value = 'Choose at least one character.'; return; }
-  if (progress.value) {
+  if (progress.value && !progress.value.weapon?.trim()) { error.value = 'Enter the equipped weapon name.'; return; }
+  if (progress.value && mode.value === 'midway') {
     const value = progress.value;
     if (!Number.isInteger(value.level) || value.level < 1 || value.level > 99 || !Number.isSafeInteger(value.points) || value.points < 0 || ATTRIBUTES.some(attribute => !Number.isInteger(value.invested[attribute]) || value.invested[attribute] < 0 || value.invested[attribute] > 99)) {
       error.value = 'Use whole numbers: levels from 1 to 99, attributes from 0 to 99, and zero or more available points.';
       return;
     }
   }
-  if (lastStep.value) emit('start', mode.value === 'midway' ? drafts.value : {});
+  if (lastStep.value) {
+    const missingWeapon = props.selected.find(key => !drafts.value[key]?.weapon?.trim());
+    if (missingWeapon) {
+      step.value = steps.value.indexOf(missingWeapon);
+      error.value = 'Enter the equipped weapon name.';
+      return;
+    }
+    const actual = mode.value === 'midway' ? drafts.value : Object.fromEntries(props.selected.map(key => [key, {
+      level: 1, points: 3, invested: { ...INITIAL_CHARACTERS[key as keyof typeof INITIAL_CHARACTERS].defaults }, weapon: drafts.value[key].weapon?.trim(),
+    }]));
+    emit('start', actual);
+  }
   else step.value++;
 }
 function back() { error.value = ''; step.value = Math.max(0, step.value - 1); }
@@ -125,6 +138,8 @@ watch([mode, step, revealedCount, revealComplete, drafts, () => props.name, () =
           </div>
           </div>
           <div v-else-if="progress" class="catch-up">
+            <WeaponField v-model="progress.weapon" :inputId="`setup-weapon-${current}`" :disabled="isBlocked" />
+            <template v-if="mode === 'midway'">
             <div class="catch-up__fields">
               <div class="setup-field">
                 <label :for="`setup-level-${current}`">Current level</label>
@@ -141,6 +156,7 @@ watch([mode, step, revealedCount, revealComplete, drafts, () => props.name, () =
                 <NumberInput v-model="progress.invested[attribute]" :inputId="`setup-${current}-${attribute}`" :label="attributeLabels[attribute]" :max="99" :disabled="isBlocked" />
               </div>
             </div>
+            </template>
           </div>
           <p v-if="error" role="alert" class="setup-error">{{ error }}</p>
           <div class="setup-actions">

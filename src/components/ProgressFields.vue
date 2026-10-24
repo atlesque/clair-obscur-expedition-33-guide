@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WeaponField from './WeaponField.vue';
 import NumberInput from './NumberInput.vue';
 import { ATTRIBUTES } from '../domain/types';
 import { attributeLabels } from '../domain/data';
@@ -7,6 +8,7 @@ defineProps<{ draft: SetupProgress }>();
 </script>
 
 <template>
+  <WeaponField v-model="draft.weapon" />
   <div class="field">
     <label for="current-level-input">Current level</label>
     <NumberInput v-model="draft.level" inputId="current-level-input" label="Current level" :min="1" :max="99" />

@@ -36,3 +36,6 @@ _Avoid_: Unlocked skills, skill tree
 
 **Character reveal**:
 The deliberate disclosure of a previously hidden character's identity after the player's explicit consent. Revealing a character does not itself add that character to a playthrough.
+
+**Equipped weapon**:
+The name of the weapon currently equipped by a tracked character, entered from the player's game. Required when onboarding or updating progress; older saves may not have recorded one yet. A weapon name alone does not describe its attribute scaling.

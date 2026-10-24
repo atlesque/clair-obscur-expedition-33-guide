@@ -5,7 +5,7 @@ test.beforeEach(async ({page})=>{
   await page.evaluate(()=>{
     localStorage.clear();
     const names=['Monoco','Maelle','Verso','Lune','Sciel'];
-    const characters=names.map(name=>({id:name.toLowerCase(),name,level:10,points:3,invested:{vitality:0,might:0,agility:0,defence:0,luck:0},tracked:true,revealed:true}));
+    const characters=names.map(name=>({id:name.toLowerCase(),name,weapon:`${name}'s recorded weapon`,level:10,points:3,invested:{vitality:0,might:0,agility:0,defence:0,luck:0},tracked:true,revealed:true}));
     localStorage.setItem('expedition-33-guide.v1',JSON.stringify({version:1,activeId:'party',playthroughs:[{id:'party',name:'Full party',characters,nextRevealIndex:4,revision:0}]}));
   });
   await page.reload();

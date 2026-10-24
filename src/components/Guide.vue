@@ -46,7 +46,7 @@ const formError = ref('');
 const wizardMode = ref<'update' | 'advice' | null>(null);
 const addingCandidate = ref(false);
 const revealedCandidate = ref<(typeof LATER_CHARACTERS)[number] | null>(null);
-const draft = ref({ level: 1, points: 0, invested: emptyAttributes() });
+const draft = ref({ level: 1, points: 0, invested: emptyAttributes(), weapon: '' });
 const expeditionMenuOpen = ref(false);
 const renamingId = ref<string | null>(null);
 const renameDraft = ref('');
@@ -167,7 +167,7 @@ function makePlaythrough(name: string): Playthrough {
   };
 }
 
-function start(actual: Record<string, { level: number; points: number; invested: typeof draft.value.invested } | null> = {}) {
+function start(actual: Record<string, SetupProgress | null> = {}) {
   if (unreadableSave || !selected.value.length) return;
   const before = snapshot();
   try {
@@ -267,7 +267,7 @@ function deleteExpedition() {
 function beginSetup(character: Character) {
   formError.value = '';
   setupCharacter.value = character;
-  draft.value = { level: character.level, points: character.points, invested: { ...character.invested } };
+  draft.value = { level: character.level, points: character.points, invested: { ...character.invested }, weapon: character.weapon ?? '' };
 }
 
 function cancelSetup() {

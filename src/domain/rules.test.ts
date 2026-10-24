@@ -2,8 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { applyRecommendation, recommend, updateProgress } from './rules';
 import { characterAvatar } from './data';
 import type { Character } from './types';
-const base: Character = { id:'gustave', name:'Gustave', level:10, invested:{vitality:3,might:2,agility:0,defence:0,luck:0}, points:0, tracked:true, revealed:true };
+const base: Character = { id:'gustave', name:'Gustave', weapon:'Recorded weapon', level:10, invested:{vitality:3,might:2,agility:0,defence:0,luck:0}, points:0, tracked:true, revealed:true };
 describe('progression public rules', () => {
+  it('requires and preserves an equipped weapon when recording progress', () => {
+    const legacy = { ...base, weapon: undefined };
+    expect(() => updateProgress(legacy, {level:10, points:0, invested:base.invested})).toThrow('equipped weapon');
+    const updated = updateProgress(legacy, {level:10, points:0, invested:base.invested, weapon:'  Recorded weapon  '});
+    expect(updated.weapon).toBe('Recorded weapon');
+    expect(updateProgress(updated, {level:11, points:3, invested:base.invested}).weapon).toBe('Recorded weapon');
+  });
   it('maps every playable character to a bundled portrait', () => {
     for (const characterId of ['gustave', 'lune', 'maelle', 'sciel', 'verso', 'monoco']) {
       expect(characterAvatar(characterId)).toBe(`/avatars/${characterId}.png`);
