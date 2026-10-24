@@ -10,6 +10,7 @@ export type SetupDraft = {
   name: string;
   selected: string[];
   revealed: number;
+  revealComplete?: boolean;
   progress: Record<string, SetupProgress>;
 };
 
@@ -22,6 +23,7 @@ export function readSetupDraft(search: string): SetupDraft | null {
     if (!raw) return null;
     const data: unknown = JSON.parse(raw);
     if (!isObject(data) || data.version !== 1 || ![null, 'new', 'midway'].includes(data.mode as null | string) || typeof data.name !== 'string' || !Number.isInteger(data.revealed) || (data.revealed as number) < 0 || (data.revealed as number) > LATER_CHARACTERS.length) return null;
+    if (data.revealComplete !== undefined && (typeof data.revealComplete !== 'boolean' || (data.revealComplete && data.revealed !== LATER_CHARACTERS.length))) return null;
     const available = [
       ...Object.keys(INITIAL_CHARACTERS),
       ...(data.mode === 'midway' ? LATER_CHARACTERS.slice(0, data.revealed as number).map(item => item.id) : []),

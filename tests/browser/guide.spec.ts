@@ -130,8 +130,17 @@ test('reveals setup characters individually and records an advanced party', asyn
     await expect(page.getByRole('button',{name:'Continue',exact:true})).toBeDisabled();
     for (const hidden of later.slice(i+1)) await expect(page.getByText(hidden,{exact:true})).toHaveCount(0);
   }
-  await expect(page.getByRole('button',{name:'Reveal next character',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Reveal next character',exact:true})).toBeVisible();
+  await expect(page.getByText('All available characters have been revealed.',{exact:true})).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('button',{name:'Reveal next character',exact:true})).toBeVisible();
+  await expect(page.getByText('All available characters have been revealed.',{exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'Reveal next character',exact:true}).click();
   await expect(page.getByRole('status')).toHaveText('All available characters have been revealed.');
+  await expect(page.getByRole('button',{name:'Reveal next character',exact:true})).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole('status')).toHaveText('All available characters have been revealed.');
+  await expect(page.getByRole('checkbox')).toHaveCount(6);
   for (const name of later) await page.getByRole('checkbox',{name,exact:true}).check();
   await page.getByRole('button',{name:'Continue',exact:true}).click();
   for (let i=0; i<later.length; i++) {

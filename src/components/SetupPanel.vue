@@ -23,6 +23,7 @@ const title = ref<HTMLElement | null>(null);
 const drafts = ref<Record<string, Progress>>(props.resume?.progress ?? {});
 const error = ref('');
 const revealedCount = ref(props.resume?.revealed ?? 0);
+const revealComplete = ref(props.resume?.revealComplete ?? false);
 const visibleCharacters = computed(() => [
   ...Object.entries(INITIAL_CHARACTERS).map(([id, item]) => ({ id, ...item })),
   ...(mode.value === 'midway' ? LATER_CHARACTERS.slice(0, revealedCount.value) : []),
@@ -39,6 +40,10 @@ const description = computed(() => current.value === 'mode' ? 'Choose a starting
 
 function ensureDraft(key: string) {
   if (!drafts.value[key]) drafts.value[key] = { level: 1, points: 0, invested: emptyAttributes() };
+}
+function revealNext() {
+  if (revealedCount.value < LATER_CHARACTERS.length) revealedCount.value++;
+  else revealComplete.value = true;
 }
 function toggleCharacter(key: string, checked: boolean) {
   emit('update:selected', checked ? [...new Set([...props.selected, key])] : props.selected.filter(value => value !== key));
@@ -69,10 +74,10 @@ watch(() => props.selected, values => {
   values.forEach(ensureDraft);
 }, { deep: true, immediate: true });
 watch(step, async () => { await nextTick(); title.value?.focus(); });
-watch([mode, step, revealedCount, drafts, () => props.name, () => props.selected], () => {
+watch([mode, step, revealedCount, revealComplete, drafts, () => props.name, () => props.selected], () => {
   writeSetupDraft({
     version: 1, mode: mode.value, screen: current.value, name: props.name,
-    selected: props.selected, revealed: revealedCount.value, progress: drafts.value,
+    selected: props.selected, revealed: revealedCount.value, revealComplete: revealComplete.value, progress: drafts.value,
   });
 }, { deep: true, flush: 'post' });
 </script>
@@ -110,9 +115,9 @@ watch([mode, step, revealedCount, drafts, () => props.name, () => props.selected
             </div>
           </fieldset>
           <div v-if="mode === 'midway'" class="setup-reveal">
-            <template v-if="revealedCount < LATER_CHARACTERS.length">
+            <template v-if="!revealComplete">
               <p id="setup-reveal-help">Only reveal the next character if they have already joined your party. Revealing a character does not select them.</p>
-              <Button type="button" severity="secondary" outlined :disabled="isBlocked" aria-describedby="setup-reveal-help" @click="revealedCount++">
+              <Button type="button" severity="secondary" outlined :disabled="isBlocked" aria-describedby="setup-reveal-help" @click="revealNext">
                 <Eye :size="17" aria-hidden="true" /><span>Reveal next character</span>
               </Button>
             </template>
