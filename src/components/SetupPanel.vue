@@ -7,26 +7,28 @@ import InputText from 'primevue/inputtext';
 import { ArrowLeft, ArrowRight, Eye } from '@lucide/vue';
 import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels, characterAvatar } from '../domain/data';
 import { ATTRIBUTES, emptyAttributes } from '../domain/types';
-import type { Attributes } from '../domain/types';
+import { writeSetupDraft } from '../domain/setup-url';
+import type { SetupDraft, SetupProgress } from '../domain/setup-url';
 import NumberInput from './NumberInput.vue';
 
-type Progress = { level: number; points: number; invested: Attributes };
-const props = defineProps<{ name: string; selected: string[]; disabled: boolean; blocked: boolean }>();
+type Progress = SetupProgress;
+const props = defineProps<{ name: string; selected: string[]; resume?: SetupDraft | null; disabled: boolean; blocked: boolean }>();
 const emit = defineEmits<{
   'update:name': [value: string]; 'update:selected': [value: string[]];
   start: [value: Record<string, Progress | null>];
 }>();
-const mode = ref<'new' | 'midway' | null>(null);
+const mode = ref<'new' | 'midway' | null>(props.resume?.mode ?? null);
 const step = ref(0);
 const title = ref<HTMLElement | null>(null);
-const drafts = ref<Record<string, Progress>>({});
+const drafts = ref<Record<string, Progress>>(props.resume?.progress ?? {});
 const error = ref('');
-const revealedCount = ref(0);
+const revealedCount = ref(props.resume?.revealed ?? 0);
 const visibleCharacters = computed(() => [
   ...Object.entries(INITIAL_CHARACTERS).map(([id, item]) => ({ id, ...item })),
   ...(mode.value === 'midway' ? LATER_CHARACTERS.slice(0, revealedCount.value) : []),
 ]);
 const steps = computed(() => ['mode', 'name', 'party', ...(mode.value === 'midway' ? props.selected : [])]);
+step.value = Math.max(0, steps.value.indexOf(props.resume?.screen ?? 'mode'));
 const current = computed(() => steps.value[step.value]);
 const character = computed(() => visibleCharacters.value.find(item => item.id === current.value)!);
 const progress = computed(() => drafts.value[current.value]);
@@ -67,6 +69,12 @@ watch(() => props.selected, values => {
   values.forEach(ensureDraft);
 }, { deep: true, immediate: true });
 watch(step, async () => { await nextTick(); title.value?.focus(); });
+watch([mode, step, revealedCount, drafts, () => props.name, () => props.selected], () => {
+  writeSetupDraft({
+    version: 1, mode: mode.value, screen: current.value, name: props.name,
+    selected: props.selected, revealed: revealedCount.value, progress: drafts.value,
+  });
+}, { deep: true, flush: 'post' });
 </script>
 
 <template>

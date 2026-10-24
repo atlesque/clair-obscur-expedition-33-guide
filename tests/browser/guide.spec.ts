@@ -175,3 +175,71 @@ test('skipped revealed characters remain addable without duplicating the advance
   await expect(page.getByRole('heading',{name:'Verso',exact:true})).toHaveCount(1);
   await expect(page.locator('.character-card')).toHaveCount(6);
 });
+
+test('restores setup name and screen from query parameters without extra history entries', async ({page}) => {
+  await page.goto('/?campaign=evening#guide');
+  const historyLength = await page.evaluate(() => history.length);
+  await page.getByRole('button',{name:/Start new expedition/}).click();
+  await page.getByLabel('Playthrough name').fill('Alex & friends / run #2 ✨');
+  await expect.poll(() => new URL(page.url()).searchParams.has('setup')).toBe(true);
+  await expect(page.evaluate(() => history.length)).resolves.toBe(historyLength);
+  await page.reload();
+  await expect(page.getByRole('heading',{name:'Name your expedition',exact:true})).toBeVisible();
+  await expect(page.getByLabel('Playthrough name')).toHaveValue('Alex & friends / run #2 ✨');
+  expect(new URL(page.url()).searchParams.get('campaign')).toBe('evening');
+  expect(new URL(page.url()).hash).toBe('#guide');
+  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await page.reload();
+  await expect(page.getByRole('heading',{name:'Who’s in your party?',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Create playthrough',exact:true}).click();
+  await expect.poll(() => new URL(page.url()).searchParams.has('setup')).toBe(false);
+  expect(new URL(page.url()).searchParams.get('campaign')).toBe('evening');
+  expect(new URL(page.url()).hash).toBe('#guide');
+});
+
+test('restores advanced setup progress and spoiler boundaries after repeated reloads', async ({page}) => {
+  await chooseStart(page, 'Join midway');
+  await page.getByRole('checkbox',{name:'Lune',exact:true}).uncheck();
+  await page.getByRole('button',{name:'Reveal next character',exact:true}).click();
+  await page.getByRole('checkbox',{name:'Maelle',exact:true}).check();
+  await page.reload();
+  await expect(page.getByRole('checkbox',{name:'Maelle',exact:true})).toBeChecked();
+  await expect(page.getByRole('checkbox',{name:'Lune',exact:true})).not.toBeChecked();
+  for (const name of ['Sciel','Verso','Monoco']) await expect(page.getByText(name,{exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await page.getByRole('spinbutton',{name:'Current level',exact:true}).fill('26');
+  await page.getByRole('spinbutton',{name:'Vitality',exact:true}).fill('12');
+  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await page.getByRole('spinbutton',{name:'Current level',exact:true}).fill('24');
+  await page.getByRole('spinbutton',{name:'Available attribute points',exact:true}).fill('9');
+  await page.getByRole('button',{name:'Increase Might',exact:true}).click();
+  await page.reload();
+  await expect(page.getByRole('heading',{name:'Maelle’s progress',exact:true})).toBeVisible();
+  await expect(page.getByRole('spinbutton',{name:'Current level',exact:true})).toHaveValue('24');
+  await expect(page.getByRole('spinbutton',{name:'Available attribute points',exact:true})).toHaveValue('9');
+  await expect(page.getByRole('spinbutton',{name:'Might',exact:true})).toHaveValue('1');
+  await page.getByRole('button',{name:'Back',exact:true}).click();
+  await expect(page.getByRole('spinbutton',{name:'Current level',exact:true})).toHaveValue('26');
+  await expect(page.getByRole('spinbutton',{name:'Vitality',exact:true})).toHaveValue('12');
+  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  await page.getByRole('button',{name:'Create playthrough',exact:true}).click();
+  await expect.poll(() => new URL(page.url()).searchParams.has('setup')).toBe(false);
+  await page.reload();
+  await expect(page.getByText('LV 24',{exact:true})).toBeVisible();
+  await expect(page.getByText('LV 26',{exact:true})).toBeVisible();
+});
+
+test('restores an empty party selection and tolerates malformed setup URLs', async ({page}) => {
+  await chooseStart(page, 'Join midway');
+  await page.getByRole('checkbox',{name:'Gustave',exact:true}).uncheck();
+  await page.getByRole('checkbox',{name:'Lune',exact:true}).uncheck();
+  await page.reload();
+  await expect(page.getByRole('button',{name:'Continue',exact:true})).toBeDisabled();
+  await expect(page.getByRole('checkbox',{name:'Gustave',exact:true})).not.toBeChecked();
+  await page.goto('/?setup=not-json');
+  await expect(page.getByRole('heading',{name:'Where are you starting?',exact:true})).toBeVisible();
+  const invalid = {version:1, mode:'midway', screen:'verso', name:'Invalid', selected:['verso'], revealed:0, progress:{}};
+  await page.goto('/?setup='+encodeURIComponent(JSON.stringify(invalid)));
+  await expect(page.getByRole('heading',{name:'Where are you starting?',exact:true})).toBeVisible();
+  await expect(page.getByText('Verso',{exact:true})).toHaveCount(0);
+});

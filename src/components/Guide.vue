@@ -10,6 +10,7 @@ import { ATTRIBUTES, emptyAttributes } from '../domain/types';
 import type { Character, Playthrough, SaveData } from '../domain/types';
 import { applyRecommendation, recommend, updateProgress } from '../domain/rules';
 import { clear, id, load, save } from '../domain/storage';
+import { readSetupDraft, writeSetupDraft } from '../domain/setup-url';
 import CharacterCard from './CharacterCard.vue';
 import FocusDialog from './FocusDialog.vue';
 import SetupPanel from './SetupPanel.vue';
@@ -30,8 +31,9 @@ function readThemeMode(): ThemeMode {
 const loaded = typeof localStorage !== 'undefined' ? load() : { kind: 'missing' as const };
 const state = ref<SaveData | null>(loaded.kind === 'loaded' ? loaded.data : null);
 const unreadableSave = loaded.kind === 'invalid';
-const setupName = ref('My Expedition');
-const selected = ref<string[]>(['gustave', 'lune']);
+const setupResume = ref(!state.value && typeof window !== 'undefined' ? readSetupDraft(window.location.search) : null);
+const setupName = ref(setupResume.value?.name ?? 'My Expedition');
+const selected = ref<string[]>(setupResume.value?.selected ?? ['gustave', 'lune']);
 const saveError = ref(loaded.kind === 'invalid' ? loaded.error : '');
 const notice = ref('');
 const revealStage = ref<'warning' | 'identity' | 'terminal' | null>(null);
@@ -96,6 +98,7 @@ function handleExpeditionMenuKeydown(event: KeyboardEvent) {
 }
 
 onMounted(() => {
+  if (state.value) writeSetupDraft(null);
   syncTheme();
   themeMediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)') ?? null;
   themeMediaQuery?.addEventListener('change', syncTheme);
@@ -157,7 +160,10 @@ function start(actual: Record<string, { level: number; points: number; invested:
     });
     const p: Playthrough = { ...makePlaythrough(setupName.value), characters, nextRevealIndex: nextCharacterIndex(characters) };
     state.value = { version: 1, playthroughs: [p], activeId: p.id };
-    persist(before);
+    if (persist(before)) {
+      setupResume.value = null;
+      writeSetupDraft(null);
+    }
   } catch (e) {
     saveError.value = e instanceof Error ? e.message : 'Enter valid in-game progress.';
   }
@@ -438,6 +444,7 @@ function cancelReveal() {
           v-if="!state"
           v-model:name="setupName"
           :selected="selected"
+          :resume="setupResume"
           :disabled="setupBlocked"
           :blocked="setupBlocked"
           @update:selected="selected = $event"
