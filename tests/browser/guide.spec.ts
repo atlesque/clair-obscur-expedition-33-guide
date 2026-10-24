@@ -411,3 +411,31 @@ test('records Lumina points and spends Colours of Lumina on the active combat pa
   await expect(page.locator('.character-card').last().getByText('2 free')).toBeVisible();
   await expect(page.locator('.colour-panel__count')).toHaveText('0 unused');
 });
+
+test('changes and removes the equipped weapon from the character card', async ({page}) => {
+  await createNew(page);
+  const gustave = page.locator('.character-card').filter({has: page.getByRole('heading',{name:'Gustave',exact:true})});
+  await gustave.getByRole('button',{name:'Change Gustave’s weapon',exact:true}).click();
+  const input = page.getByLabel('Equipped weapon',{exact:true});
+  await expect(input).toBeFocused();
+  await page.keyboard.type('Cru');
+  await page.getByRole('option',{name:'Cruleram',exact:true}).click();
+  await page.getByRole('button',{name:'Save progress',exact:true}).click();
+  await expect(gustave.locator('.character-weapon strong')).toHaveText('Cruleram · Level 1');
+  await gustave.getByRole('button',{name:'Remove Gustave’s weapon',exact:true}).click();
+  await expect(gustave.locator('.character-weapon strong')).toHaveCount(0);
+  await expect(gustave.locator('.stats__item.is-scaling')).toHaveCount(0);
+  await page.reload();
+  await expect(gustave.getByRole('button',{name:'Add weapon',exact:true})).toBeVisible();
+});
+
+test('clears the weapon field with its clear control', async ({page}) => {
+  await createNew(page);
+  await page.locator('.character-card').first().getByRole('button',{name:'Update progress',exact:true}).click();
+  const input = page.getByLabel('Equipped weapon',{exact:true});
+  await expect(input).not.toHaveValue('');
+  await page.locator('.weapon-field .p-autocomplete-clear-icon').click();
+  await expect(input).toHaveValue('');
+  await page.getByRole('button',{name:'Save progress',exact:true}).click();
+  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('equipped weapon');
+});
