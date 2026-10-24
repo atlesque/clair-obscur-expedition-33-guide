@@ -45,9 +45,9 @@ onUnmounted(() => previous?.focus());
 .field-dialog .p-dialog-header-icon { width: 34px; height: 34px; border-radius: 6px; color: var(--card-muted); }
 .field-dialog .p-dialog-header-icon:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .field-dialog .p-dialog-content { padding: 4px 25px 25px; background: var(--card-bg); color: var(--card-fg); }
-.field-dialog .p-inputnumber, .field-dialog .p-inputtext { width: 100%; }
-.field-dialog .p-inputnumber-input, .field-dialog .p-inputtext { border-color: var(--card-line); border-radius: 6px; background: var(--card-control-bg); color: var(--card-fg); }
-.field-dialog .p-inputnumber-input:enabled:focus, .field-dialog .p-inputtext:enabled:focus { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+.field-dialog .p-inputtext { width: 100%; }
+.field-dialog .p-inputtext { border-color: var(--card-line); border-radius: 6px; background: var(--card-control-bg); color: var(--card-fg); }
+.field-dialog .p-inputtext:enabled:focus { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
 .field-dialog .p-button { border-radius: 6px; }
 .field-dialog .p-button:not(.p-button-text):not(.p-button-outlined) { background: var(--gold); border-color: var(--gold); color: var(--button-fg); }
 .field-dialog .p-button:not(.p-button-text):not(.p-button-outlined):hover { background: var(--gold-strong); border-color: var(--gold-strong); }

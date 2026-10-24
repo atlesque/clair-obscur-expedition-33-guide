@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import Button from 'primevue/button';
-import InputNumber from 'primevue/inputnumber';
+import NumberInput from './NumberInput.vue';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import { Check, ChevronDown, Eye, Monitor, Moon, Pencil, Plus, Sun, Trash2 } from '@lucide/vue';
@@ -480,19 +480,19 @@ function cancelReveal() {
           </div>
           <Message v-if="formError" severity="error" :closable="false" class="dialog-error">{{ formError }}</Message>
           <form novalidate class="dialog-form" @submit.prevent="submitProgress">
-            <label class="field">
-              <span>Current level</span>
-              <InputNumber id="current-level" v-model="draft.level" inputId="current-level-input" :max="99" :useGrouping="false" autofocus />
-            </label>
-            <label class="field">
-              <span>Available attribute points</span>
-              <InputNumber id="available-points" v-model="draft.points" inputId="available-points-input" :min="0" :useGrouping="false" />
-            </label>
+            <div class="field">
+              <label for="current-level-input">Current level</label>
+              <NumberInput v-model="draft.level" inputId="current-level-input" label="Current level" :min="1" :max="99" />
+            </div>
+            <div class="field">
+              <label for="available-points-input">Available attribute points</label>
+              <NumberInput v-model="draft.points" inputId="available-points-input" label="Available attribute points" />
+            </div>
             <div class="attribute-grid">
-              <label v-for="attribute in ATTRIBUTES" :key="attribute" class="field">
-                <span>{{ attributeLabels[attribute] }}</span>
-                <InputNumber v-model="draft.invested[attribute]" :inputId="`edit-${attribute}`" :min="0" :max="99" :useGrouping="false" />
-              </label>
+              <div v-for="attribute in ATTRIBUTES" :key="attribute" class="attribute-row">
+                <label :for="`edit-${attribute}`">{{ attributeLabels[attribute] }}</label>
+                <NumberInput v-model="draft.invested[attribute]" :inputId="`edit-${attribute}`" :label="attributeLabels[attribute]" :max="99" />
+              </div>
             </div>
             <div class="dialog-actions">
               <Button type="button" label="Cancel" severity="secondary" text @click="cancelSetup" />
@@ -656,8 +656,11 @@ button, input { font: inherit; }
 .dialog-intro p { margin: 12px 0 0; color: var(--card-muted); line-height: 1.55; }
 .dialog-form { display: grid; gap: 2px; }
 .field { display: grid; gap: 7px; margin: 10px 0; color: var(--card-muted); font-size: .78rem; font-weight: 700; letter-spacing: .02em; }
-.field .p-inputnumber, .field .p-inputtext { width: 100%; }
-.attribute-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+.field .p-inputtext { width: 100%; }
+.attribute-grid { display: grid; gap: 0; margin-top: 16px; }
+.attribute-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--card-line); }
+.attribute-row label { color: var(--card-fg); font-size: .85rem; }
+.attribute-row .number-input { width: 160px; flex: 0 0 160px; }
 .attribute-grid .field { min-width: 0; }
 .dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
 .dialog-actions .p-button { border-radius: 6px; }
@@ -680,7 +683,7 @@ button, input { font: inherit; }
   .party { grid-template-columns: minmax(0, 1fr); }
   .character-card__inner { min-height: 0; padding: 21px; }
   .character-avatar { width: 58px; height: 58px; }
-  .attribute-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
 }
 
 @media (max-width: 400px) {
