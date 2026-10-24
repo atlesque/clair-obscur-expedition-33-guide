@@ -5,7 +5,7 @@ import Card from 'primevue/card';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import { ArrowLeft, ArrowRight, Eye } from '@lucide/vue';
-import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels, characterAvatar } from '../domain/data';
+import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels, characterAvatar, compareCharacterIds } from '../domain/data';
 import { ATTRIBUTES, emptyAttributes } from '../domain/types';
 import { writeSetupDraft } from '../domain/setup-url';
 import type { SetupDraft, SetupProgress } from '../domain/setup-url';
@@ -27,8 +27,8 @@ const revealComplete = ref(props.resume?.revealComplete ?? false);
 const visibleCharacters = computed(() => [
   ...Object.entries(INITIAL_CHARACTERS).map(([id, item]) => ({ id, ...item })),
   ...(mode.value === 'midway' ? LATER_CHARACTERS.slice(0, revealedCount.value) : []),
-]);
-const steps = computed(() => ['mode', 'name', 'party', ...(mode.value === 'midway' ? props.selected : [])]);
+].sort((left, right) => compareCharacterIds(left.id, right.id)));
+const steps = computed(() => ['mode', 'name', 'party', ...(mode.value === 'midway' ? [...props.selected].sort(compareCharacterIds) : [])]);
 step.value = Math.max(0, steps.value.indexOf(props.resume?.screen ?? 'mode'));
 const current = computed(() => steps.value[step.value]);
 const character = computed(() => visibleCharacters.value.find(item => item.id === current.value)!);

@@ -77,8 +77,7 @@ test('clears deselected midway drafts before reselecting', async ({page}) => {
   await page.getByRole('checkbox',{name:'Gustave',exact:true}).uncheck();
   await page.getByRole('checkbox',{name:'Gustave',exact:true}).check();
   await page.getByRole('button',{name:'Continue',exact:true}).click();
-  // Re-selected Gustave follows Lune in the chosen party order.
-  await page.getByRole('button',{name:'Continue',exact:true}).click();
+  // The progress screens follow menu order, even after re-selection.
   await expect(page.getByRole('heading',{name:'Gustave’s progress'})).toBeVisible();
   await expect(page.getByRole('spinbutton',{name:'Current level',exact:true})).toHaveValue('1');
 });
@@ -141,17 +140,20 @@ test('reveals setup characters individually and records an advanced party', asyn
   await page.reload();
   await expect(page.getByRole('status')).toHaveText('All available characters have been revealed.');
   await expect(page.getByRole('checkbox')).toHaveCount(6);
-  for (const name of later) await page.getByRole('checkbox',{name,exact:true}).check();
+  for (const name of [...later, 'Lune']) await page.getByRole('checkbox',{name,exact:true}).check();
+  const menuOrder = ['Sciel', 'Lune', 'Verso', 'Maelle', 'Monoco'];
+  await expect(page.locator('.character-choice label span')).toHaveText(['Gustave', ...menuOrder]);
   await page.getByRole('button',{name:'Continue',exact:true}).click();
-  for (let i=0; i<later.length; i++) {
-    await expect(page.getByRole('heading',{name:`${later[i]}’s progress`})).toBeVisible();
+  for (let i=0; i<menuOrder.length; i++) {
+    await expect(page.getByRole('heading',{name:`${menuOrder[i]}’s progress`})).toBeVisible();
     await page.getByRole('spinbutton',{name:'Current level',exact:true}).fill(String(20+i));
     await page.getByRole('spinbutton',{name:'Vitality',exact:true}).fill(String(10+i));
-    await page.getByRole('button',{name:i===later.length-1 ? 'Create playthrough' : 'Continue',exact:true}).click();
+    await page.getByRole('button',{name:i===menuOrder.length-1 ? 'Create playthrough' : 'Continue',exact:true}).click();
   }
   await page.reload();
-  for (let i=0; i<later.length; i++) {
-    await expect(page.getByRole('heading',{name:later[i],exact:true})).toHaveCount(1);
+  await expect(page.locator('.character-card h2')).toHaveText(menuOrder);
+  for (let i=0; i<menuOrder.length; i++) {
+    await expect(page.getByRole('heading',{name:menuOrder[i],exact:true})).toHaveCount(1);
     await expect(page.getByText(`LV ${20+i}`,{exact:true})).toBeVisible();
   }
   await expect(page.getByRole('heading',{name:'Gustave',exact:true})).toHaveCount(0);

@@ -5,7 +5,7 @@ import NumberInput from './NumberInput.vue';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import { Check, ChevronDown, Eye, Monitor, Moon, Pencil, Plus, Sun, Trash2 } from '@lucide/vue';
-import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels } from '../domain/data';
+import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels, compareCharacterIds } from '../domain/data';
 import { ATTRIBUTES, emptyAttributes } from '../domain/types';
 import type { Character, Playthrough, SaveData } from '../domain/types';
 import { applyRecommendation, recommend, updateProgress } from '../domain/rules';
@@ -460,7 +460,7 @@ function cancelReveal() {
 
           <section class="party" aria-label="Tracked characters">
             <CharacterCard
-              v-for="character in active.characters.filter((item) => item.tracked)"
+              v-for="character in active.characters.filter((item) => item.tracked).sort((left, right) => compareCharacterIds(left.id, right.id))"
               :key="character.id"
               :character="character"
               @update="beginSetup"
