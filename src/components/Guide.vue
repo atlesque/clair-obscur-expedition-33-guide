@@ -662,11 +662,12 @@ button, input { font: inherit; }
 .character-card.p-card { height: 100%; background: var(--card-bg); border: 1px solid var(--page-line); border-radius: 8px; color: var(--card-fg); box-shadow: none; }
 .character-card .p-card-body, .character-card .p-card-content { height: 100%; padding: 0; }
 .character-card__inner { display: flex; flex-direction: column; min-height: 372px; padding: 25px; }
-.character-card__head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 22px; border-bottom: 1px solid var(--card-line); }
+.character-card__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 22px; border-bottom: 1px solid var(--card-line); }
 .character-card__identity { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .character-avatar { display: block; flex: 0 0 auto; width: 64px; height: 64px; border: 0; border-radius: 0; background: transparent; object-fit: cover; }
 .character-card h2 { margin: 0; color: var(--card-fg); font-family: var(--display); font-size: 1.8rem; font-weight: 400; letter-spacing: .01em; }
-.level-tag.p-tag { flex: 0 0 auto; background: var(--card-accent-bg) !important; color: var(--gold-strong) !important; border-radius: 6px; font-size: .64rem; letter-spacing: .13em; }
+.character-card__badges { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; margin-left: auto; }
+.level-tag.p-tag, .points-tag.p-tag { flex: 0 0 auto; background: var(--card-accent-bg) !important; color: var(--gold-strong) !important; border-radius: 6px; font-size: .64rem; letter-spacing: .13em; }
 .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 22px 0; }
 .stats__item { min-width: 0; }
 .stats__label { display: block; overflow: hidden; color: var(--card-muted); font-size: .58rem; font-weight: 700; letter-spacing: .08em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
@@ -681,8 +682,6 @@ button, input { font: inherit; }
 .character-card__actions .p-button:not(.p-button-outlined):not(.p-button-text) { background: var(--gold); border-color: var(--gold); color: var(--button-fg); }
 .character-card__actions .p-button.p-button-outlined { border-color: var(--card-line); color: var(--card-fg); }
 .character-card__actions .p-button.p-button-text { color: var(--card-muted); }
-.points-line { display: flex; align-items: center; gap: 8px; margin: 21px 0 0; color: var(--card-muted); font-size: .77rem; }
-.points-line i { color: var(--gold); font-size: .75rem; }
 .add-character.p-button.p-button-secondary.p-button-outlined { width: 100%; justify-content: center; margin-top: 20px; min-height: 52px; border: 1px solid var(--card-line); border-radius: 6px; background: var(--card-bg); color: var(--card-fg); box-shadow: none; font-size: .85rem; font-weight: 700; letter-spacing: .02em; }
 .add-character.p-button.p-button-secondary.p-button-outlined:hover { background: var(--card-accent-bg); border-color: var(--gold); color: var(--card-fg); }
 .manager-intro { margin-bottom: 20px; }

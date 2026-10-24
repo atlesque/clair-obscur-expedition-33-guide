@@ -3,7 +3,6 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Message from 'primevue/message';
 import Tag from 'primevue/tag';
-import { Zap } from '@lucide/vue';
 import { ATTRIBUTES } from '../domain/types';
 import { attributeLabels, characterAvatar } from '../domain/data';
 import type { Character } from '../domain/types';
@@ -31,7 +30,10 @@ const avatarSrc = computed(() => characterAvatar(props.character.id));
             <h2>{{ character.name }}</h2>
             </div>
           </div>
-          <Tag :value="`LV ${character.level}`" class="level-tag" />
+          <div class="character-card__badges">
+            <Tag :value="`LV ${character.level}`" class="level-tag" />
+            <Tag :value="`${character.points} AP`" class="points-tag" :aria-label="`${character.points} attribute points available`" :title="`${character.points} attribute points available`" />
+          </div>
         </div>
 
         <div class="stats" aria-label="Recorded attributes">
@@ -56,7 +58,6 @@ const avatarSrc = computed(() => characterAvatar(props.character.id));
           <Button v-if="character.pending" label="Dismiss advice" severity="secondary" text @click="$emit('dismiss', character)" />
         </div>
 
-        <p class="points-line"><Zap :size="14" :strokeWidth="1.8" aria-hidden="true" />{{ character.points }} attribute points available</p>
       </div>
     </template>
   </Card>
