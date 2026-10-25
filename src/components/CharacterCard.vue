@@ -17,6 +17,7 @@ defineEmits<{
   toggleParty: [character: Character];
   'edit-weapon': [character: Character];
   'remove-weapon': [character: Character];
+  'edit-lumina': [character: Character];
   'set-stat': [character: Character, field: StatField];
 }>();
 
@@ -74,9 +75,10 @@ const spend = computed(() => Object.entries(props.character.pending?.spend ?? {}
         <div class="min-w-0">
           <span class="section-kicker block text-[0.65rem]">Lumina points</span>
           <strong v-if="character.lumina" class="block font-semibold text-highlighted">{{ free }} free<span class="font-medium text-muted"> · {{ character.lumina.spent }} of {{ character.lumina.total }} spent</span></strong>
-          <UButton v-else variant="link" class="px-0" label="Add Lumina points" @click="$emit('update', character)" />
+          <UButton v-else variant="link" class="px-0" label="Add Lumina points" @click="$emit('edit-lumina', character)" />
           <small v-if="free" class="mt-1 block text-xs text-muted">Equip more Luminas from Pictos you’ve mastered to use them.</small>
         </div>
+        <UButton v-if="character.lumina" class="ml-auto shrink-0" variant="link" size="sm" label="Change" :aria-label="`Change ${character.name}’s Lumina points`" @click="$emit('edit-lumina', character)" />
       </div>
     </div>
 

@@ -35,3 +35,11 @@ export function setStat(character: Character, field: StatField, value: number): 
   if (field === 'level' || field === 'points') return { ...character, [field]: value, pending: undefined };
   return { ...character, invested: { ...cloneAttributes(character.invested), [field]: value }, pending: undefined };
 }
+
+/** Records the equipped weapon and its level on their own. Advice is built around the weapon, so pending advice is cleared. */
+export function setWeapon(character: Character, name: string, weaponLevel: number): Character {
+  const weapon = name.trim();
+  if (!weapon || weapon.length > 120) throw new Error('Enter the equipped weapon name (up to 120 characters).');
+  if (!isWeaponLevel(weaponLevel)) throw new Error(`Enter a weapon level from 1 to ${MAX_WEAPON_LEVEL}.`);
+  return { ...character, weapon, weaponLevel, pending: undefined };
+}

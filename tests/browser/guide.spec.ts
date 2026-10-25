@@ -325,11 +325,12 @@ test('keeps older saves readable and requires a weapon when updating them', asyn
   await page.reload();
   const card=page.locator('.character-card').first();
   await card.getByRole('button',{name:'Add weapon',exact:true}).click();
+  await expect(page.getByRole('dialog',{name:'Gustave’s weapon',exact:true})).toBeVisible();
   await expect(page.getByLabel('Equipped weapon',{exact:true})).toBeFocused();
-  await page.getByRole('button',{name:'Save progress',exact:true}).click();
+  await page.getByRole('button',{name:'Save',exact:true}).click();
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('equipped weapon');
   await pickWeapon(page,'aby','Abysseram');
-  await page.getByRole('button',{name:'Save progress',exact:true}).click();
+  await page.getByRole('button',{name:'Save',exact:true}).click();
   await expect(card.locator('.character-weapon strong')).toHaveText('Abysseram · Level 1');
   await expect(card.getByRole('button',{name:'Update progress',exact:true})).toBeFocused();
   await page.reload();
@@ -420,8 +421,11 @@ test('changes and removes the equipped weapon from the character card', async ({
   await expect(input).toBeFocused();
   await page.keyboard.type('Cru');
   await page.getByRole('option',{name:'Cruleram',exact:true}).click();
-  await page.getByRole('button',{name:'Save progress',exact:true}).click();
-  await expect(gustave.locator('.character-weapon strong')).toHaveText('Cruleram · Level 1');
+  // The weapon dialog holds only the weapon and its level.
+  await expect(page.getByRole('dialog').getByRole('spinbutton')).toHaveCount(1);
+  await page.getByRole('spinbutton',{name:'Weapon level',exact:true}).fill('4');
+  await page.getByRole('button',{name:'Save',exact:true}).click();
+  await expect(gustave.locator('.character-weapon strong')).toHaveText('Cruleram · Level 4');
   await gustave.getByRole('button',{name:'Remove Gustave’s weapon',exact:true}).click();
   await expect(gustave.locator('.character-weapon strong')).toHaveCount(0);
   await expect(gustave.locator('.stats__item.is-scaling')).toHaveCount(0);
@@ -496,4 +500,28 @@ test('sets the level, attribute points and an attribute directly from the card',
   await page.reload();
   await expect(gustave.locator('.level-tag')).toHaveText('LV 25');
   await expect(gustave.locator('.points-tag')).toHaveText('12 AP');
+});
+
+test('adds and changes Lumina points in their own small dialog', async ({page}) => {
+  await createNew(page);
+  const gustave = page.locator('.character-card').filter({has: page.getByRole('heading',{name:'Gustave',exact:true})});
+  await gustave.getByRole('button',{name:/Get advice for Gustave/}).click();
+  await gustave.getByRole('button',{name:'Add Lumina points',exact:true}).click();
+  const dialog = page.getByRole('dialog',{name:'Gustave’s Lumina points',exact:true});
+  await expect(dialog.getByRole('spinbutton')).toHaveCount(2);
+  await dialog.getByRole('spinbutton',{name:'Total Lumina points',exact:true}).fill('4');
+  await dialog.getByRole('spinbutton',{name:'Spent Lumina points',exact:true}).fill('6');
+  await dialog.getByRole('button',{name:'Save',exact:true}).click();
+  await expect(dialog.getByRole('alert')).toContainText('cannot exceed');
+  await dialog.getByRole('spinbutton',{name:'Total Lumina points',exact:true}).fill('10');
+  await dialog.getByRole('button',{name:'Save',exact:true}).click();
+  await expect(gustave.locator('.character-lumina strong')).toHaveText('4 free · 6 of 10 spent');
+  // Lumina points don't change attribute advice.
+  await expect(gustave.getByText('Pending recommendation')).toBeVisible();
+  await gustave.getByRole('button',{name:'Change Gustave’s Lumina points',exact:true}).click();
+  await page.getByRole('spinbutton',{name:'Spent Lumina points',exact:true}).fill('10');
+  await page.getByRole('button',{name:'Save',exact:true}).click();
+  await expect(gustave.locator('.character-lumina strong')).toHaveText('0 free · 10 of 10 spent');
+  await page.reload();
+  await expect(gustave.locator('.character-lumina strong')).toHaveText('0 free · 10 of 10 spent');
 });

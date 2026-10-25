@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyRecommendation, recommend, setStat, updateProgress } from './rules';
+import { applyRecommendation, recommend, setStat, setWeapon, updateProgress } from './rules';
 import { characterAvatar } from './data';
 import type { Character } from './types';
 const base: Character = { id:'gustave', name:'Gustave', weapon:'Recorded weapon', level:10, invested:{vitality:3,might:2,agility:0,defence:0,luck:0}, points:0, tracked:true, revealed:true };
@@ -43,5 +43,11 @@ describe('progression public rules', () => {
     expect(() => setStat(base, 'vitality', 100)).toThrow('0 to 99');
     expect(() => setStat(base, 'points', -1)).toThrow('zero or more');
     expect(() => setStat(base, 'agility', 1.5)).toThrow('whole number');
+  });
+  it('sets the weapon on its own and clears advice built around the old one', () => {
+    const advised = { ...base, points: 2, pending: recommend({ ...base, points: 2 }) };
+    expect(setWeapon(advised, '  Abysseram ', 20)).toMatchObject({ weapon: 'Abysseram', weaponLevel: 20, level: 10, pending: undefined });
+    expect(() => setWeapon(base, ' ', 1)).toThrow('equipped weapon');
+    expect(() => setWeapon(base, 'Abysseram', 34)).toThrow('weapon level');
   });
 });

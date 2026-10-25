@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyColourPlan, planColours } from './lumina';
+import { applyColourPlan, planColours, setLumina } from './lumina';
 import { updateProgress } from './rules';
 import { isSaveData } from './storage';
 import type { Character, Playthrough } from './types';
@@ -45,5 +45,11 @@ describe('Lumina points and Colours of Lumina', () => {
     expect(isSaveData({ version: 1, playthroughs: [playthrough], activeId: 'p' })).toBe(true);
     expect(isSaveData({ version: 1, playthroughs: [{ ...playthrough, colourPlan: planColours(playthrough) }], activeId: 'p' })).toBe(true);
     expect(isSaveData({ version: 1, playthroughs: [{ ...playthrough, colours: -1 }], activeId: 'p' })).toBe(false);
+  });
+  it('sets Lumina points on their own and keeps pending advice', () => {
+    const advised: Character = { id: 'lune', name: 'Lune', weapon: 'Colim', level: 5, points: 0, invested: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, tracked: true, revealed: true, pending: { characterId: 'lune', base: { vitality: 0, might: 0, agility: 0, defence: 0, luck: 0 }, basePoints: 0, spend: {}, points: 0, explanation: '', revision: 5 } };
+    expect(setLumina(advised, 10, 7)).toMatchObject({ lumina: { total: 10, spent: 7 }, weapon: 'Colim', pending: advised.pending });
+    expect(() => setLumina(advised, 5, 6)).toThrow('cannot exceed');
+    expect(() => setLumina(advised, 1000, 0)).toThrow('0 to 999');
   });
 });
