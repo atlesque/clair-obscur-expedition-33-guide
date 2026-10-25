@@ -1,67 +1,33 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref } from 'vue';
-import Dialog from 'primevue/dialog';
+import { onUnmounted } from 'vue';
 
-const props = defineProps<{ title: string; focusWeapon?: boolean }>();
+const props = defineProps<{ title: string; focusWeapon?: boolean; size?: 'sm' | 'md' }>();
 const emit = defineEmits<{ close: [] }>();
-const visible = ref(true);
-let previous: HTMLElement | null = null;
-let fallback: HTMLElement | null = null;
+const previous = document.activeElement as HTMLElement | null;
+const fallback = previous?.closest('.character-card')?.querySelector<HTMLElement>('.character-card__actions button') ?? null;
 
-function updateVisible(value: boolean) {
-  visible.value = value;
-  if (!value) emit('close');
-}
-
-onMounted(async () => {
-  previous = document.activeElement as HTMLElement;
-  fallback = previous?.closest('.character-card')?.querySelector<HTMLElement>('.character-card__actions button') ?? null;
-  await nextTick();
-  const weapon = document.querySelector<HTMLInputElement>('.field-dialog #equipped-weapon');
-  const target = weapon && weapon.value && !props.focusWeapon ? document.getElementById('current-level-input') : weapon;
-  (target ?? document.querySelector<HTMLElement>('.field-dialog input'))?.focus();
+// The dialog picks its own first focus (and returns focus itself), instead of the modal's defaults.
+function focusFirst(event: Event) {
+  event.preventDefault();
+  const content = event.target as HTMLElement;
+  const weapon = content.querySelector<HTMLInputElement>('#equipped-weapon');
+  const target = weapon && weapon.value && !props.focusWeapon ? content.querySelector<HTMLElement>('#current-level-input') : weapon;
+  (target ?? content.querySelector<HTMLElement>('input') ?? content).focus();
   // Changing the weapon starts with the current name selected, so typing replaces it.
   if (props.focusWeapon) weapon?.select();
-});
+}
 
 onUnmounted(() => (previous?.isConnected ? previous : fallback)?.focus());
 </script>
 
 <template>
-  <Dialog
-    :visible="visible"
-    :header="props.title"
-    :ariaLabel="props.title"
-    modal
-    closable
-    closeOnEscape
-    :draggable="false"
-    :style="{ width: 'min(580px, calc(100vw - 32px))' }"
-    class="field-dialog"
-    @update:visible="updateVisible"
+  <UModal
+    :open="true"
+    :title="props.title"
+    :ui="{ content: `field-dialog ${size === 'sm' ? 'sm:max-w-sm' : 'sm:max-w-xl'}`, title: 'text-2xl text-highlighted' }"
+    :content="{ onOpenAutoFocus: focusFirst, onCloseAutoFocus: (event: Event) => event.preventDefault() }"
+    @update:open="value => { if (!value) emit('close'); }"
   >
-    <slot />
-  </Dialog>
+    <template #body><slot /></template>
+  </UModal>
 </template>
-
-<style>
-.field-dialog.p-dialog { overflow: hidden; border: 0; border-radius: 6px; background: var(--card-bg); color: var(--card-fg); box-shadow: 0 24px 70px rgba(0,0,0,.28); }
-.field-dialog .p-dialog-header { padding: 22px 25px 13px; background: var(--card-bg); color: var(--card-fg); font-family: var(--display); font-size: 1.8rem; font-weight: 400; letter-spacing: .01em; }
-.field-dialog .p-dialog-header-actions { gap: 4px; }
-.field-dialog .p-dialog-header-icon { width: 34px; height: 34px; border-radius: 6px; color: var(--card-muted); }
-.field-dialog .p-dialog-header-icon:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.field-dialog .p-dialog-content { padding: 4px 25px 25px; background: var(--card-bg); color: var(--card-fg); }
-.field-dialog .p-inputtext { width: 100%; }
-.field-dialog .p-inputtext { border-color: var(--card-line); border-radius: 6px; background: var(--card-control-bg); color: var(--card-fg); }
-.field-dialog .p-inputtext:enabled:focus { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
-.field-dialog .p-button { border-radius: 6px; }
-.field-dialog .p-button:not(.p-button-text):not(.p-button-outlined) { background: var(--gold); border-color: var(--gold); color: var(--button-fg); }
-.field-dialog .p-button:not(.p-button-text):not(.p-button-outlined):hover { background: var(--gold-strong); border-color: var(--gold-strong); }
-.field-dialog .p-button.p-button-text { color: var(--card-muted); }
-.field-dialog .p-dialog-mask { background: rgba(8, 13, 17, .78); backdrop-filter: blur(4px); }
-
-@media (max-width: 560px) {
-  .field-dialog .p-dialog-header { padding: 20px 19px 12px; font-size: 1.6rem; }
-  .field-dialog .p-dialog-content { padding: 4px 19px 20px; }
-}
-</style>

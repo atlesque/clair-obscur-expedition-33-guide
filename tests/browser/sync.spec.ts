@@ -49,7 +49,7 @@ test('uploads locally, restores on another device, and pulls later edits', async
     await b.getByRole('spinbutton',{name:'Current level',exact:true}).fill('20');
     await b.getByRole('button',{name:'Save progress',exact:true}).click();
     await expect.poll(()=>cloudSave(cloud).playthroughs[0].characters[0].level).toBe(20);
-    await a.locator('.account-control summary').click();
+    await a.locator('.account-control__trigger').click();
     await a.getByRole('button',{name:'Sync now',exact:true}).click();
     await expect(a.getByText('LV 20',{exact:true})).toBeVisible();
     await a.reload(); await expect(a.getByText('LV 20',{exact:true})).toBeVisible();
@@ -108,11 +108,12 @@ test('finishes PKCE sign-in and keeps an unfinished setup URL', async ({page}) =
   await page.getByLabel('Playthrough name').fill('Before signing in');
   await page.evaluate(()=>localStorage.setItem('expedition-33-guide.signin',JSON.stringify({state:'expected',verifier:'v'.repeat(43),redirect:location.origin+'/',returnUrl:location.href,at:Date.now()})));
   await page.goto('/?mbpg_code=one-time-code&mbpg_state=expected');
-  await expect(page.getByLabel('Playthrough name')).toHaveValue('Before signing in');
+  // Sign-in reloads the setup URL, so this waits through two page loads of the unbundled dev server.
+  await expect(page.getByLabel('Playthrough name')).toHaveValue('Before signing in', {timeout:15_000});
   expect(exchanged).toBe(true);
   expect(new URL(page.url()).searchParams.has('mbpg_code')).toBe(false);
   expect(new URL(page.url()).searchParams.has('setup')).toBe(true);
-  await page.locator('.account-control summary').click();
+  await page.locator('.account-control__trigger').click();
   await expect(page.getByText('callback@example.com',{exact:true})).toBeVisible();
 });
 
