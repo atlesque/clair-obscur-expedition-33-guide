@@ -10,6 +10,7 @@ const GRADES: ScalingGrade[] = ['D', 'C', 'B', 'A', 'S'];
 // BP_ItemInstance_Gear_Weapon raises every scaling grade by one at each of these upgrade levels.
 const GRADE_UPGRADE_LEVELS = [4, 20, 33];
 
+// Pools follow each weapon's item subtype: gustave holds the Noah Weapon swords, verso the Verso Weapon ones.
 const WEAPON_POOLS: Record<string, Weapon[]> = {
   gustave: [
     { name: 'Abysseram', scaling: [{ attribute: 'vitality', grade: 'C' }, { attribute: 'defence', grade: 'D' }] },
@@ -137,7 +138,13 @@ const WEAPON_POOLS: Record<string, Weapon[]> = {
 /** Shortest query that starts a weapon search, so the list never spoils weapons the player hasn't found. */
 export const WEAPON_SEARCH_MIN_LENGTH = 3;
 
-export const weaponsFor = (characterId: CharacterId): Weapon[] => WEAPON_POOLS[characterId] ?? [];
+// DT_jRPG_CharacterDefinitions AllowedEquipmentSubtypes lets Gustave and Verso both equip Noah and Verso weapons.
+const EQUIPPABLE_POOLS: Record<string, string[]> = { gustave: ['gustave', 'verso'], verso: ['gustave', 'verso'] };
+
+export const weaponsFor = (characterId: CharacterId): Weapon[] =>
+  (EQUIPPABLE_POOLS[characterId] ?? [characterId])
+    .flatMap(pool => WEAPON_POOLS[pool] ?? [])
+    .sort((a, b) => a.name.localeCompare(b.name));
 
 export function searchWeapons(characterId: CharacterId, query: string): Weapon[] {
   const needle = query.trim().toLocaleLowerCase();
