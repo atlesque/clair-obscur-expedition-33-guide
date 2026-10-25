@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import Button from 'primevue/button';
 import ProgressFields from './ProgressFields.vue';
 import PartyWizard from './PartyWizard.vue';
 import type { SetupProgress } from '../domain/setup-url';
-import InputText from 'primevue/inputtext';
-import Message from 'primevue/message';
-import { Check, ChevronDown, Eye, Monitor, Moon, Pencil, Plus, Sun, Trash2 } from '@lucide/vue';
-import { INITIAL_CHARACTERS, LATER_CHARACTERS, compareCharacterIds } from '../domain/data';
+import NumberInput from './NumberInput.vue';
+import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels, compareCharacterIds } from '../domain/data';
 import { emptyAttributes } from '../domain/types';
 import type { Character, Playthrough, SaveData } from '../domain/types';
-import { applyRecommendation, recommend, updateProgress } from '../domain/rules';
+import { applyRecommendation, recommend, setStat, statLimits, updateProgress } from '../domain/rules';
+import type { StatField } from '../domain/rules';
 import { MAX_ACTIVE_PARTY, activeParty, applyColourPlan, planColours } from '../domain/lumina';
 import ColourPanel from './ColourPanel.vue';
 import { clear, id, load, save } from '../domain/storage';
@@ -26,7 +24,7 @@ type ThemeMode = 'auto' | 'light' | 'dark';
 const THEME_STORAGE_KEY = 'expedition-33-guide.theme';
 const THEME_MODES: ThemeMode[] = ['auto', 'dark', 'light'];
 const THEME_LABELS: Record<ThemeMode, string> = { auto: 'Auto', dark: 'Dark', light: 'Light' };
-const THEME_ICONS: Record<ThemeMode, typeof Monitor> = { auto: Monitor, dark: Moon, light: Sun };
+const THEME_ICONS: Record<ThemeMode, string> = { auto: 'i-lucide-monitor', dark: 'i-lucide-moon', light: 'i-lucide-sun' };
 
 function readThemeMode(): ThemeMode {
   if (typeof localStorage === 'undefined') return 'auto';
@@ -56,6 +54,9 @@ const renameDraft = ref('');
 const newExpeditionName = ref('');
 const managerError = ref('');
 const deleteTarget = ref<Playthrough | null>(null);
+const statTarget = ref<{ character: Character; field: StatField } | null>(null);
+const statDraft = ref(0);
+const statError = ref('');
 const themeMode = ref<ThemeMode>(readThemeMode());
 const setupBlocked = computed(() => unreadableSave || Boolean(saveError.value));
 
@@ -67,6 +68,8 @@ const themeLabel = computed(() => THEME_LABELS[themeMode.value]);
 const nextThemeMode = computed(() => THEME_MODES[(THEME_MODES.indexOf(themeMode.value) + 1) % THEME_MODES.length]);
 const nextThemeLabel = computed(() => THEME_LABELS[nextThemeMode.value]);
 const themeIcon = computed(() => THEME_ICONS[themeMode.value]);
+const statLabel = computed(() => !statTarget.value ? '' : statTarget.value.field === 'level' ? 'Level' : statTarget.value.field === 'points' ? 'Available attribute points' : attributeLabels[statTarget.value.field]);
+const statTitle = computed(() => !statTarget.value ? '' : `Set ${statTarget.value.character.name}’s ${statTarget.value.field === 'level' ? 'level' : statTarget.value.field === 'points' ? 'attribute points' : statLabel.value}`);
 let themeMediaQuery: MediaQueryList | null = null;
 const snapshot = () => (state.value ? (JSON.parse(JSON.stringify(state.value)) as SaveData) : null);
 
@@ -75,6 +78,7 @@ function syncTheme() {
   const systemTheme = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   const appliedTheme = themeMode.value === 'auto' ? systemTheme : themeMode.value;
   document.documentElement.dataset.theme = appliedTheme;
+  document.documentElement.classList.toggle('dark', appliedTheme === 'dark');
   document.documentElement.style.colorScheme = appliedTheme;
 }
 
@@ -92,24 +96,14 @@ function closeExpeditionMenu() {
   expeditionMenuOpen.value = false;
 }
 
-function toggleExpeditionMenu() {
-  managerError.value = '';
-  expeditionMenuOpen.value = !expeditionMenuOpen.value;
-}
-
-function handleOutsideExpeditionMenu(event: PointerEvent) {
-  const target = event.target;
-  if (!(target instanceof Node) || !expeditionMenuOpen.value) return;
-  if (!(target instanceof Element) || !target.closest('.expedition-nav')) closeExpeditionMenu();
-}
-
-function handleExpeditionMenuKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && expeditionMenuOpen.value) closeExpeditionMenu();
+function setExpeditionMenu(open: boolean) {
+  if (open) managerError.value = '';
+  expeditionMenuOpen.value = open;
 }
 
 const playSync = createPlaySync({
   get: snapshot,
-  canSync: () => !unreadableSave && !wizardMode.value && !setupCharacter.value && !revealStage.value && !deleteTarget.value && !expeditionMenuOpen.value,
+  canSync: () => !unreadableSave && !wizardMode.value && !setupCharacter.value && !statTarget.value && !revealStage.value && !deleteTarget.value && !expeditionMenuOpen.value,
   apply: (data) => {
     const result = data ? save(data) : clear();
     if (!result.ok) { saveError.value = result.error ?? 'Could not store account progress on this device.'; return false; }
@@ -129,15 +123,11 @@ onMounted(() => {
   syncTheme();
   themeMediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)') ?? null;
   themeMediaQuery?.addEventListener('change', syncTheme);
-  document.addEventListener('pointerdown', handleOutsideExpeditionMenu);
-  document.addEventListener('keydown', handleExpeditionMenuKeydown);
 });
 
 onUnmounted(() => {
   playSync.stop();
   themeMediaQuery?.removeEventListener('change', syncTheme);
-  document.removeEventListener('pointerdown', handleOutsideExpeditionMenu);
-  document.removeEventListener('keydown', handleExpeditionMenuKeydown);
 });
 
 function persist(before: SaveData | null) {
@@ -298,14 +288,14 @@ function submitProgress() {
       active.value.characters[index] = character;
     }
     active.value.revision++;
+    formError.value = '';
     if (persist(before)) {
       setupCharacter.value = null;
       if (adding) {
         addingCandidate.value = false;
         revealedCandidate.value = null;
       }
-    }
-    formError.value = '';
+    } else formError.value = saveError.value;
   } catch (e) {
     formError.value = e instanceof Error ? e.message : 'Enter valid in-game progress.';
   }
@@ -345,6 +335,29 @@ function removeWeapon(character: Character) {
   character.pending = undefined;
   active.value.revision++;
   if (persist(before)) notice.value = `Removed ${character.name}’s weapon. Add the one equipped in-game when you’re ready.`;
+}
+
+function beginStat(character: Character, field: StatField) {
+  statError.value = '';
+  statDraft.value = field === 'level' || field === 'points' ? character[field] : character.invested[field];
+  statTarget.value = { character, field };
+}
+
+function saveStat() {
+  if (!active.value || !statTarget.value) return;
+  const { character, field } = statTarget.value;
+  const index = active.value.characters.findIndex(item => item.id === character.id);
+  if (index < 0) return;
+  try {
+    const changed = setStat(character, field, statDraft.value);
+    const before = snapshot();
+    active.value.characters[index] = changed;
+    active.value.revision++;
+    if (persist(before)) statTarget.value = null;
+    else statError.value = saveError.value;
+  } catch (e) {
+    statError.value = e instanceof Error ? e.message : 'Enter a valid number.';
+  }
 }
 
 function dismiss(character: Character) {
@@ -453,107 +466,98 @@ function cancelReveal() {
 </script>
 
 <template>
-  <main class="guide-shell">
-    <div class="guide-frame">
-      <header class="top-nav" aria-label="Primary navigation">
-        <div class="top-nav__identity">
-          <div class="top-nav__brand">
-            <span class="top-nav__brand-mark">Expedition 33</span>
-            <span class="top-nav__brand-detail">Leveling guide</span>
+  <div class="guide-shell min-h-screen">
+    <header class="top-nav sticky top-0 border-b border-default bg-(--app-bg)/90 backdrop-blur-md" aria-label="Primary navigation">
+      <UContainer class="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-5">
+        <div class="flex min-w-0 items-center justify-between gap-3.5">
+          <div class="flex min-w-0 items-baseline gap-2.5">
+            <span class="font-display text-2xl whitespace-nowrap text-primary">Expedition 33</span>
+            <span class="section-kicker hidden whitespace-nowrap text-[0.62rem] min-[401px]:inline">Leveling guide</span>
           </div>
-          <button
-            type="button"
+          <UButton
             class="theme-toggle"
+            color="neutral"
+            variant="outline"
+            square
+            size="lg"
+            :icon="themeIcon"
             :data-theme-mode="themeMode"
             :aria-label="`Theme: ${themeLabel}. Activate to switch to ${nextThemeLabel}.`"
             :title="`Theme: ${themeLabel} · Switch to ${nextThemeLabel}`"
             @click="cycleTheme"
-          >
-            <component :is="themeIcon" :size="17" :strokeWidth="1.8" aria-hidden="true" />
-            <span class="sr-only">{{ themeLabel }}</span>
-          </button>
+          />
         </div>
 
-        <div class="top-nav__actions">
+        <div class="flex w-full items-center gap-2 sm:w-auto">
           <AccountControl :account="playSync.account" @sign-in="playSync.signIn" @sign-out="playSync.signOut" @sync="playSync.sync" />
-          <div v-if="hasPlaythroughs" class="expedition-nav">
-            <button
-              type="button"
-              class="top-nav__expedition"
-              aria-haspopup="true"
-              :aria-expanded="expeditionMenuOpen"
+          <UPopover v-if="hasPlaythroughs" :open="expeditionMenuOpen" :content="{ align: 'end', sideOffset: 8 }" :ui="{ content: 'data-[state=closed]:animate-none' }" class="expedition-nav min-w-0 flex-1 sm:flex-none" @update:open="setExpeditionMenu">
+            <UButton
+              class="top-nav__expedition w-full min-w-48 sm:w-auto"
+              color="neutral"
+              variant="outline"
+              trailing-icon="i-lucide-chevron-down"
               aria-label="View all expeditions"
-              @click="toggleExpeditionMenu"
+              :ui="{ trailingIcon: 'text-primary ms-auto' }"
             >
-              <span class="top-nav__expedition-copy">
-                <span class="top-nav__expedition-kicker">Current expedition</span>
-                <strong>{{ active?.name ?? 'Set up an expedition' }}</strong>
+              <span class="grid min-w-0 text-left">
+                <span class="section-kicker truncate text-[0.55rem]">Current expedition</span>
+                <strong class="truncate font-display text-base font-normal text-highlighted">{{ active?.name ?? 'Set up an expedition' }}</strong>
               </span>
-              <ChevronDown :size="16" :strokeWidth="1.8" aria-hidden="true" />
-            </button>
+            </UButton>
 
-            <div v-if="expeditionMenuOpen" class="expedition-menu" aria-label="Expeditions" @click.stop>
-              <div class="expedition-menu__heading">
-                <span class="section-kicker">Expeditions</span>
-                <span v-if="state" class="expedition-menu__count">{{ state.playthroughs.length }} saved</span>
-              </div>
-              <Message v-if="managerError" severity="error" :closable="false" class="menu-error">{{ managerError }}</Message>
-
-              <div v-if="state" class="expedition-menu__list">
-                <div
-                  v-for="playthrough in state.playthroughs"
-                  :key="playthrough.id"
-                  class="expedition-menu__row"
-                  :class="{ 'expedition-menu__row--active': playthrough.id === state.activeId }"
-                >
-                  <template v-if="renamingId === playthrough.id">
-                    <label class="sr-only" :for="`rename-${playthrough.id}`">Expedition name</label>
-                    <InputText :id="`rename-${playthrough.id}`" v-model="renameDraft" class="expedition-menu__input" @keyup.enter="saveRename(playthrough)" />
-                    <button type="button" class="expedition-menu__text-action" @click="saveRename(playthrough)">Save</button>
-                    <button type="button" class="expedition-menu__text-action expedition-menu__text-action--muted" @click="cancelRename">Cancel</button>
-                  </template>
-                  <template v-else>
-                    <button
-                      type="button"
-                      class="expedition-menu__select"
-                      :aria-current="playthrough.id === state.activeId ? 'true' : undefined"
-                      @click="selectExpedition(playthrough.id)"
-                    >
-                      <span>{{ playthrough.name }}</span>
-                      <small v-if="playthrough.id === state.activeId">Current</small>
-                    </button>
-                    <button type="button" class="expedition-menu__icon-action" aria-label="Rename" :title="`Rename ${playthrough.name}`" @click="beginRename(playthrough)">
-                      <Pencil :size="15" :strokeWidth="1.8" aria-hidden="true" />
-                    </button>
-                    <button
-                      type="button"
-                      class="expedition-menu__icon-action expedition-menu__icon-action--danger"
-                      aria-label="Delete"
-                      :title="`Delete ${playthrough.name}`"
-                      @click="requestDelete(playthrough)"
-                    >
-                      <Trash2 :size="15" :strokeWidth="1.8" aria-hidden="true" />
-                    </button>
-                  </template>
+            <template #content>
+              <div class="expedition-menu grid w-[min(24rem,calc(100vw-2rem))] gap-2 p-4" aria-label="Expeditions">
+                <div class="flex items-baseline justify-between gap-3 border-b border-default pb-2.5">
+                  <span class="section-kicker">Expeditions</span>
+                  <span v-if="state" class="text-xs text-muted">{{ state.playthroughs.length }} saved</span>
                 </div>
+                <UAlert v-if="managerError" role="alert" color="error" variant="subtle" :title="managerError" class="menu-error" />
+
+                <div v-if="state" class="grid gap-0.5">
+                  <div
+                    v-for="playthrough in state.playthroughs"
+                    :key="playthrough.id"
+                    class="flex min-w-0 items-center gap-1 rounded-md border-s-2 py-1 ps-2"
+                    :class="playthrough.id === state.activeId ? 'border-primary bg-primary/10' : 'border-transparent'"
+                  >
+                    <template v-if="renamingId === playthrough.id">
+                      <label class="sr-only" :for="`rename-${playthrough.id}`">Expedition name</label>
+                      <UInput :id="`rename-${playthrough.id}`" v-model="renameDraft" size="sm" class="min-w-0 flex-1" @keyup.enter="saveRename(playthrough)" />
+                      <UButton size="sm" variant="ghost" label="Save" @click="saveRename(playthrough)" />
+                      <UButton size="sm" variant="ghost" color="neutral" label="Cancel" @click="cancelRename" />
+                    </template>
+                    <template v-else>
+                      <button
+                        type="button"
+                        class="flex min-w-0 flex-1 cursor-pointer items-baseline justify-between gap-2.5 rounded-sm px-1 py-1.5 text-left focus-visible:outline-2 focus-visible:outline-primary"
+                        :aria-current="playthrough.id === state.activeId ? 'true' : undefined"
+                        @click="selectExpedition(playthrough.id)"
+                      >
+                        <span class="truncate font-display text-lg text-highlighted">{{ playthrough.name }}</span>
+                        <UBadge v-if="playthrough.id === state.activeId" size="sm" variant="subtle" label="Current" />
+                      </button>
+                      <UButton color="neutral" variant="ghost" square icon="i-lucide-pencil" aria-label="Rename" :title="`Rename ${playthrough.name}`" @click="beginRename(playthrough)" />
+                      <UButton color="neutral" variant="ghost" square icon="i-lucide-trash-2" class="hover:text-error" aria-label="Delete" :title="`Delete ${playthrough.name}`" @click="requestDelete(playthrough)" />
+                    </template>
+                  </div>
+                </div>
+                <p v-else class="text-sm text-muted">Create your first expedition below to start recording progress.</p>
+
+                <form v-if="state" class="mt-1 grid gap-2 border-t border-default pt-3 min-[401px]:grid-cols-[minmax(0,1fr)_auto]" @submit.prevent="createExpedition">
+                  <label class="sr-only" for="new-expedition">New expedition</label>
+                  <UInput id="new-expedition" v-model="newExpeditionName" placeholder="Name a new expedition" autocomplete="off" class="w-full" />
+                  <UButton type="submit" label="Add expedition" icon="i-lucide-plus" color="neutral" variant="outline" class="justify-center" />
+                </form>
               </div>
-              <p v-else class="expedition-menu__empty">Create your first expedition below to start recording progress.</p>
-
-              <form v-if="state" class="expedition-menu__new" @submit.prevent="createExpedition">
-                <label class="sr-only" for="new-expedition">New expedition</label>
-                <InputText id="new-expedition" v-model="newExpeditionName" placeholder="Name a new expedition" autocomplete="off" />
-                <Button type="submit" label="Add expedition" severity="secondary" outlined />
-              </form>
-            </div>
-          </div>
-
+            </template>
+          </UPopover>
         </div>
-      </header>
+      </UContainer>
+    </header>
 
-      <div class="guide-content">
-        <div v-if="saveError" class="save-alert">
-          <Message severity="error" :closable="false"><span>{{ saveError }}</span></Message>
-        </div>
+    <main class="guide-content">
+      <UContainer class="pb-20">
+        <UAlert v-if="saveError" role="alert" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="saveError" class="save-alert mt-6" />
 
         <SetupPanel
           v-if="!state"
@@ -567,17 +571,27 @@ function cancelReveal() {
         />
 
         <template v-else-if="active">
-          <Message v-if="notice" severity="success" :closable="false" class="action-notice" aria-live="polite">{{ notice }}</Message>
+          <UAlert
+            v-if="notice"
+            color="success"
+            variant="subtle"
+            icon="i-lucide-circle-check"
+            :title="notice"
+            :close="{ 'aria-label': 'Dismiss message' }"
+            class="action-notice mt-6"
+            aria-live="polite"
+            @update:open="notice = ''"
+          />
 
-          <section class="party-heading" aria-labelledby="party-title">
+          <section class="party-heading mt-10 mb-5 flex flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between" aria-labelledby="party-title">
             <span id="party-title" class="section-kicker">Recorded progress</span>
-            <div class="party-actions" aria-label="Party actions">
-              <Button label="Update progress" aria-label="Update progress for all characters" severity="secondary" outlined :disabled="!trackedCharacters.length" @click="wizardMode = 'update'" />
-              <Button label="Get advice" aria-label="Get advice for all characters" :disabled="!trackedCharacters.length" @click="wizardMode = 'advice'" />
+            <div class="party-actions flex flex-wrap gap-2" aria-label="Party actions">
+              <UButton label="Update progress" aria-label="Update progress for all characters" icon="i-lucide-pencil-line" color="neutral" variant="outline" class="flex-1 justify-center sm:flex-none" :disabled="!trackedCharacters.length" @click="wizardMode = 'update'" />
+              <UButton label="Get advice" aria-label="Get advice for all characters" icon="i-lucide-lightbulb" class="flex-1 justify-center sm:flex-none" :disabled="!trackedCharacters.length" @click="wizardMode = 'advice'" />
             </div>
           </section>
 
-          <section class="party" aria-label="Tracked characters">
+          <section class="party grid gap-5 md:grid-cols-2" aria-label="Tracked characters">
             <CharacterCard
               v-for="character in trackedCharacters"
               :key="character.id"
@@ -590,243 +604,67 @@ function cancelReveal() {
               @dismiss="dismiss"
               @edit-weapon="editWeapon"
               @remove-weapon="removeWeapon"
+              @set-stat="beginStat"
             />
           </section>
 
-          <ColourPanel :playthrough="active" @save="saveColours" @suggest="suggestColours" @confirm="confirmColours" @dismiss="dismissColours" />
+          <ColourPanel :playthrough="active" class="mt-5" @save="saveColours" @suggest="suggestColours" @confirm="confirmColours" @dismiss="dismissColours" />
 
-          <Button v-if="!active?.revealComplete" severity="secondary" outlined class="add-character" @click="openReveal">
-            <Plus :size="17" :strokeWidth="1.8" aria-hidden="true" />
-            <span>Add a character</span>
-          </Button>
+          <UButton v-if="!active?.revealComplete" color="neutral" variant="outline" size="xl" icon="i-lucide-plus" label="Add a character" block class="add-character mt-5 bg-default" @click="openReveal" />
         </template>
 
         <PartyWizard v-if="wizardMode && active" :mode="wizardMode" :characters="trackedCharacters" :saveProgress="saveWizardProgress" :prepareAdvice="advise" :applyAdvice="confirm" @close="wizardMode = null" @complete="finishWizard" />
 
-        <FocusDialog v-if="deleteTarget" title="Delete expedition?" @close="deleteTarget = null">
-          <div class="manager-intro">
-            <p>This removes <strong>{{ deleteTarget.name }}</strong> and its recorded progress from this browser.</p>
-          </div>
-          <div class="dialog-actions">
-            <Button label="Cancel" severity="secondary" text @click="deleteTarget = null" />
-            <Button label="Delete expedition" severity="danger" @click="deleteExpedition" />
+        <FocusDialog v-if="deleteTarget" title="Delete expedition?" size="sm" @close="deleteTarget = null">
+          <p class="text-muted">This removes <strong class="text-highlighted">{{ deleteTarget.name }}</strong> and its recorded progress from this browser.</p>
+          <div class="dialog-actions mt-6 flex flex-wrap justify-end gap-2">
+            <UButton label="Cancel" color="neutral" variant="ghost" @click="deleteTarget = null" />
+            <UButton label="Delete expedition" color="error" icon="i-lucide-trash-2" @click="deleteExpedition" />
           </div>
         </FocusDialog>
 
-        <FocusDialog v-if="setupCharacter" :title="`Update ${setupCharacter.name}`" :focusWeapon="focusWeapon" @close="cancelSetup">
-          <div class="dialog-intro">
-            <span class="section-kicker">Reconcile your save</span>
-            <p>Enter what is true in-game. This replaces the recorded inputs and clears old advice.</p>
-          </div>
-          <Message v-if="formError" severity="error" :closable="false" class="dialog-error">{{ formError }}</Message>
-          <form novalidate class="dialog-form" @submit.prevent="submitProgress">
-            <ProgressFields :draft="draft" :characterId="setupCharacter.id" />
-            <div class="dialog-actions">
-              <Button type="button" label="Cancel" severity="secondary" text @click="cancelSetup" />
-              <Button type="submit"><Check :size="17" :strokeWidth="1.8" aria-hidden="true" /><span>Save progress</span></Button>
+        <FocusDialog v-if="statTarget" :title="statTitle" size="sm" @close="statTarget = null">
+          <form novalidate class="grid gap-5" @submit.prevent="saveStat">
+            <UAlert v-if="statError" role="alert" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="statError" />
+            <UFormField :label="statLabel" :help="statTarget.character.pending ? 'Saving clears the pending recommendation, since it was based on the old value.' : undefined">
+              <NumberInput v-model="statDraft" inputId="stat-value-input" :label="statLabel" :min="statLimits(statTarget.field).min" :max="statLimits(statTarget.field).max" />
+            </UFormField>
+            <div class="dialog-actions flex flex-wrap justify-end gap-2">
+              <UButton type="button" label="Cancel" color="neutral" variant="ghost" @click="statTarget = null" />
+              <UButton type="submit" icon="i-lucide-check" label="Save" />
             </div>
           </form>
         </FocusDialog>
 
-        <FocusDialog v-if="revealStage" title="Continue your expedition?" @close="cancelReveal">
-          <div class="dialog-intro">
-            <span class="section-kicker">Spoiler boundary</span>
-            <p v-if="revealStage === 'warning'">Only continue if someone new has joined your party. The next identity stays hidden until you choose to reveal it.</p>
-            <p v-else-if="revealStage === 'identity'">The next character is <strong>{{ revealedCandidate?.name }}</strong>.</p>
-            <p v-else>No additional character is available right now.</p>
+        <FocusDialog v-if="setupCharacter" :title="`Update ${setupCharacter.name}`" :focusWeapon="focusWeapon" @close="cancelSetup">
+          <div class="dialog-intro mb-5 grid gap-2">
+            <span class="section-kicker text-primary">Reconcile your save</span>
+            <p class="text-muted">Enter what is true in-game. This replaces the recorded inputs and clears old advice.</p>
           </div>
-          <div class="dialog-actions">
-            <Button label="Cancel" severity="secondary" text @click="cancelReveal" />
-            <Button v-if="revealStage === 'warning'" @click="consentReveal"><Eye :size="17" :strokeWidth="1.8" aria-hidden="true" /><span>Reveal character</span></Button>
-            <Button v-else-if="revealStage === 'identity'" @click="addLater"><Plus :size="17" :strokeWidth="1.8" aria-hidden="true" /><span>Add to playthrough</span></Button>
+          <UAlert v-if="formError" role="alert" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="formError" class="dialog-error mb-4" />
+          <form novalidate class="dialog-form grid gap-5" @submit.prevent="submitProgress">
+            <ProgressFields :draft="draft" :characterId="setupCharacter.id" />
+            <div class="dialog-actions flex flex-wrap justify-end gap-2">
+              <UButton type="button" label="Cancel" color="neutral" variant="ghost" @click="cancelSetup" />
+              <UButton type="submit" icon="i-lucide-check" label="Save progress" />
+            </div>
+          </form>
+        </FocusDialog>
+
+        <FocusDialog v-if="revealStage" title="Continue your expedition?" size="sm" @close="cancelReveal">
+          <div class="dialog-intro grid gap-2">
+            <span class="section-kicker text-primary">Spoiler boundary</span>
+            <p v-if="revealStage === 'warning'" class="text-muted">Only continue if someone new has joined your party. The next identity stays hidden until you choose to reveal it.</p>
+            <p v-else-if="revealStage === 'identity'" class="text-muted">The next character is <strong class="text-highlighted">{{ revealedCandidate?.name }}</strong>.</p>
+            <p v-else class="text-muted">No additional character is available right now.</p>
+          </div>
+          <div class="dialog-actions mt-6 flex flex-wrap justify-end gap-2">
+            <UButton label="Cancel" color="neutral" variant="ghost" @click="cancelReveal" />
+            <UButton v-if="revealStage === 'warning'" icon="i-lucide-eye" label="Reveal character" @click="consentReveal" />
+            <UButton v-else-if="revealStage === 'identity'" icon="i-lucide-plus" label="Add to playthrough" @click="addLater" />
           </div>
         </FocusDialog>
-      </div>
-    </div>
-  </main>
+      </UContainer>
+    </main>
+  </div>
 </template>
-
-<style>
-@font-face {
-  font-family: 'Plus Jakarta Sans'; font-style: normal; font-display: swap; font-weight: 200 800;
-  src: url('/fonts/plus-jakarta-sans-latin-wght-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'DM Serif Display'; font-style: normal; font-display: swap; font-weight: 400;
-  src: url('/fonts/dm-serif-display-latin-400-normal.woff2') format('woff2');
-}
-
-/* Shared palette and type from the Expedition 33 reference project. */
-:root {
-  --display: 'DM Serif Display', Georgia, serif;
-  --body: 'Plus Jakarta Sans', system-ui, sans-serif;
-  --gold: #dcbb72;
-  --gold-strong: #dcbb72;
-  --button-fg: #171614;
-  --page-bg: #0e0d0c;
-  --page-fg: #ebe7df;
-  --page-muted: #a39d90;
-  --page-line: #2c2a26;
-  --card-bg: #171614;
-  --card-fg: #ebe7df;
-  --card-muted: #a39d90;
-  --card-line: #3b3833;
-  --card-accent-bg: #2a2419;
-  --card-accent-fg: #ebe7df;
-  --card-control-bg: #201e1b;
-  --card-control-fg: #ebe7df;
-  --card-control-placeholder: #a39d90;
-}
-
-:root[data-theme='light'] {
-  --gold: #745123;
-  --gold-strong: #5c4120;
-  --button-fg: #ffffff;
-  --page-bg: #f6f5f2;
-  --page-fg: #201e1b;
-  --page-muted: #58544b;
-  --page-line: #e0ddd5;
-  --card-bg: #ffffff;
-  --card-fg: #201e1b;
-  --card-muted: #58544b;
-  --card-line: #e0ddd5;
-  --card-accent-bg: #fbf7ee;
-  --card-accent-fg: #201e1b;
-  --card-control-bg: #ffffff;
-  --card-control-fg: #201e1b;
-  --card-control-placeholder: #726d62;
-}
-
-* { box-sizing: border-box; }
-html { background: var(--page-bg); }
-body { margin: 0; background: var(--page-bg); color: var(--page-fg); font-family: var(--body); -webkit-font-smoothing: antialiased; }
-button, input { font: inherit; }
-
-.guide-shell { position: relative; min-height: 100vh; overflow: hidden; background: var(--page-bg); }
-.guide-frame { position: relative; width: min(100% - 56px, 980px); margin: 0 auto; padding: 0 0 72px; }
-.guide-content { min-width: 0; }
-.top-nav { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 15px 0 13px; border-bottom: 1px solid var(--page-line); background: color-mix(in srgb, var(--page-bg) 92%, transparent); backdrop-filter: blur(14px); }
-.top-nav__identity { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.top-nav__brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
-.top-nav__brand-mark { color: var(--gold); font-family: var(--display); font-size: 1.45rem; letter-spacing: .01em; white-space: nowrap; }
-.top-nav__brand-detail { color: var(--page-muted); font-size: .62rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
-.top-nav__actions { display: flex; align-items: center; gap: 9px; }
-.expedition-nav { position: relative; }
-.top-nav__expedition { display: flex; align-items: center; gap: 11px; min-width: 194px; padding: 6px 7px 6px 11px; border: 1px solid var(--page-line); border-radius: 6px; background: transparent; color: var(--page-fg); text-align: left; cursor: pointer; }
-.top-nav__expedition:hover, .top-nav__expedition:focus-visible { border-color: var(--gold); }
-.top-nav__expedition:focus-visible, .theme-toggle:focus-visible, .expedition-menu button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.top-nav__expedition-copy { display: grid; flex: 1 1 auto; gap: 2px; min-width: 0; }
-.top-nav__expedition-kicker { overflow: hidden; color: var(--page-muted); font-size: .55rem; font-weight: 700; letter-spacing: .14em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
-.top-nav__expedition strong { overflow: hidden; font-family: var(--display); font-size: .98rem; font-weight: 400; letter-spacing: -.02em; text-overflow: ellipsis; white-space: nowrap; }
-.top-nav__expedition > svg { flex: 0 0 auto; color: var(--gold); }
-.expedition-menu { position: absolute; top: calc(100% + 10px); right: 0; width: min(390px, calc(100vw - 28px)); padding: 15px; border: 1px solid var(--page-line); border-radius: 6px; background: var(--card-bg); color: var(--card-fg); box-shadow: 0 12px 32px rgba(0,0,0,.16); }
-.expedition-menu__heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 1px 0 10px; border-bottom: 1px solid var(--card-line); }
-.expedition-menu__heading .section-kicker { color: var(--card-muted); }
-.expedition-menu__count { color: var(--card-muted); font-size: .68rem; }
-.expedition-menu__list { display: grid; gap: 2px; padding: 7px 0 2px; }
-.expedition-menu__row { display: flex; align-items: center; gap: 4px; min-width: 0; padding: 4px 0 4px 8px; border-left: 2px solid transparent; }
-.expedition-menu__row--active { border-left-color: var(--gold); background: color-mix(in srgb, var(--gold) 10%, transparent); }
-.expedition-menu__select { display: flex; flex: 1 1 auto; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; padding: 7px 4px; border: 0; background: transparent; color: var(--card-fg); text-align: left; cursor: pointer; }
-.expedition-menu__select span { overflow: hidden; font-family: var(--display); font-size: 1.03rem; text-overflow: ellipsis; white-space: nowrap; }
-.expedition-menu__select small { flex: 0 0 auto; color: var(--gold-strong); font-size: .58rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-.expedition-menu__icon-action { display: inline-grid; flex: 0 0 auto; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--card-muted); cursor: pointer; }
-.expedition-menu__icon-action:hover { background: color-mix(in srgb, var(--gold) 15%, transparent); color: var(--gold-strong); }
-.expedition-menu__icon-action--danger:hover { color: #a13f2d; }
-.expedition-menu__icon-action:disabled { opacity: .32; cursor: not-allowed; }
-.expedition-menu__input { flex: 1 1 auto; min-width: 0; }
-.expedition-menu__text-action { flex: 0 0 auto; padding: 6px 4px; border: 0; background: transparent; color: var(--gold-strong); font-size: .73rem; font-weight: 700; cursor: pointer; }
-.expedition-menu__text-action--muted { color: var(--card-muted); }
-.expedition-menu__empty { margin: 14px 3px 12px; color: var(--card-muted); font-size: .8rem; line-height: 1.5; }
-.menu-error { margin: 11px 0 0; border-radius: 6px; font-size: .76rem; line-height: 1.4; }
-.expedition-menu__new { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--card-line); }
-.expedition-menu__new .p-inputtext { min-width: 0; border-color: var(--card-line); border-radius: 6px; color: var(--card-fg); }
-.expedition-menu__new .p-button { min-height: 38px; border-radius: 6px; }
-.theme-toggle { display: inline-grid; flex: 0 0 auto; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--page-line); border-radius: 6px; background: transparent; color: var(--page-fg); cursor: pointer; }
-.theme-toggle:hover { border-color: var(--gold); color: var(--gold); }
-.section-kicker { color: var(--page-muted); font-size: .68rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
-.save-alert { margin: 24px 0; }
-.save-alert .p-message { border-radius: 6px; }
-.p-button > svg { flex: 0 0 auto; }
-.action-notice { margin: 18px 0 0; border-radius: 6px; }
-.party-heading { display: flex; align-items: center; justify-content: space-between; gap: 32px; margin: 34px 0 18px; }
-.party-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.party-actions .p-button { min-height: 44px; font-size: .8rem; border-radius: 6px; }
-.party-actions .p-button:not(.p-button-outlined) { background: var(--gold); border-color: var(--gold); color: var(--button-fg); }
-.party-actions .p-button-outlined { color: var(--page-fg); border-color: var(--page-line); }
-.party { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.character-card.p-card { height: 100%; background: var(--card-bg); border: 1px solid var(--page-line); border-radius: 8px; color: var(--card-fg); box-shadow: none; }
-.character-card .p-card-body, .character-card .p-card-content { height: 100%; padding: 0; }
-.character-card__inner { display: flex; flex-direction: column; min-height: 372px; padding: 25px; }
-.character-card__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 22px; border-bottom: 1px solid var(--card-line); }
-.character-card__identity { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.character-avatar { display: block; flex: 0 0 auto; width: 64px; height: 64px; border: 0; border-radius: 0; background: transparent; object-fit: cover; }
-.character-card h2 { margin: 0; color: var(--card-fg); font-family: var(--display); font-size: 1.8rem; font-weight: 400; letter-spacing: .01em; }
-.character-card__badges { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; margin-left: auto; }
-.level-tag.p-tag, .points-tag.p-tag { flex: 0 0 auto; background: var(--card-accent-bg) !important; color: var(--gold-strong) !important; border-radius: 6px; font-size: .64rem; letter-spacing: .13em; }
-.stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding: 22px 0; }
-.stats__item { min-width: 0; }
-.stats__label { display: block; overflow: hidden; color: var(--card-muted); font-size: .58rem; font-weight: 700; letter-spacing: .08em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
-.stats__value { display: block; margin-top: 5px; color: var(--card-fg); font-family: var(--display); font-size: 1.55rem; line-height: 1; }
-.recommendation.p-message { margin: 0 0 20px; border-left: 3px solid var(--gold) !important; border-radius: 0; background: var(--card-accent-bg) !important; color: var(--card-accent-fg) !important; }
-.recommendation .p-message-text { color: var(--card-accent-fg) !important; }
-.recommendation strong { display: block; margin-bottom: 7px; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; }
-.recommendation__spend { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--gold-strong); font-weight: 700; }
-.recommendation small { display: block; margin-top: 8px; line-height: 1.5; }
-.recommendation__notes { margin: 8px 0 0; padding-left: 18px; font-size: .8rem; line-height: 1.5; }
-.recommendation__notes li + li { margin-top: 4px; }
-.character-card__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
-.character-card__actions .p-button { min-height: 38px; border-radius: 6px; font-size: .79rem; }
-.character-card__actions .p-button:not(.p-button-outlined):not(.p-button-text) { background: var(--gold); border-color: var(--gold); color: var(--button-fg); }
-.character-card__actions .p-button.p-button-outlined { border-color: var(--card-line); color: var(--card-fg); }
-.character-card__actions .p-button.p-button-text { color: var(--card-muted); }
-.add-character.p-button.p-button-secondary.p-button-outlined { width: 100%; justify-content: center; margin-top: 20px; min-height: 52px; border: 1px solid var(--card-line); border-radius: 6px; background: var(--card-bg); color: var(--card-fg); box-shadow: none; font-size: .85rem; font-weight: 700; letter-spacing: .02em; }
-.add-character.p-button.p-button-secondary.p-button-outlined:hover { background: var(--card-accent-bg); border-color: var(--gold); color: var(--card-fg); }
-.manager-intro { margin-bottom: 20px; }
-.manager-intro p { margin: 10px 0 0; color: var(--card-muted); line-height: 1.5; }
-
-.dialog-intro { margin-bottom: 22px; }
-.dialog-intro p { margin: 12px 0 0; color: var(--card-muted); line-height: 1.55; }
-.dialog-form { display: grid; gap: 2px; }
-.field { display: grid; gap: 7px; margin: 10px 0; color: var(--card-muted); font-size: .78rem; font-weight: 700; letter-spacing: .02em; }
-.field .p-inputtext { width: 100%; }
-.attribute-grid { display: grid; gap: 0; margin-top: 16px; }
-.attribute-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--card-line); }
-.attribute-row label { color: var(--card-fg); font-size: .85rem; }
-.attribute-row .number-input { width: 160px; flex: 0 0 160px; }
-.attribute-grid .field { min-width: 0; }
-.dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
-.dialog-actions .p-button { border-radius: 6px; }
-.dialog-error { margin: 14px 0; color: var(--p-red-500); font-size: .84rem; font-weight: 700; line-height: 1.45; }
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-
-@media (max-width: 900px) {
-  .guide-frame { width: min(100% - 34px, 760px); }
-}
-
-@media (max-width: 680px) {
-  .guide-frame { width: min(100% - 28px, 560px); padding-top: 0; }
-  .top-nav { align-items: stretch; flex-direction: column; gap: 12px; }
-  .top-nav__identity { justify-content: space-between; }
-  .top-nav__actions { width: 100%; }
-  .expedition-nav { flex: 1 1 auto; }
-  .top-nav__expedition { width: 100%; }
-  .expedition-menu { left: 0; right: auto; width: min(390px, calc(100vw - 28px)); }
-  .party-heading { margin-top: 28px; flex-direction: column; align-items: stretch; gap: 14px; }
-  .party-actions .p-button { flex: 1 1 auto; justify-content: center; }
-  .party { grid-template-columns: minmax(0, 1fr); }
-  .character-card__inner { min-height: 0; padding: 21px; }
-  .character-avatar { width: 58px; height: 58px; }
-
-}
-
-@media (max-width: 400px) {
-  .guide-frame { width: min(100% - 22px, 560px); }
-  .top-nav__brand-detail { display: none; }
-  .expedition-menu__new { grid-template-columns: 1fr; }
-  .expedition-menu__new .p-button { width: 100%; }
-  .stats { gap: 4px; }
-  .stats__label { font-size: .51rem; }
-  .stats__value { font-size: 1.35rem; }
-  .character-card__actions .p-button { flex: 1 1 100%; }
-}
-</style>

@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import Button from 'primevue/button';
-import Card from 'primevue/card';
-import Message from 'primevue/message';
-import Tag from 'primevue/tag';
-import { Sparkles, Swords } from '@lucide/vue';
+import { computed } from 'vue';
+import Recommendation from './Recommendation.vue';
 import { ATTRIBUTES } from '../domain/types';
 import { attributeLabels, characterAvatar } from '../domain/data';
 import { weaponScaling } from '../domain/weapons';
 import { MAX_ACTIVE_PARTY, freeLumina } from '../domain/lumina';
-import type { Character } from '../domain/types';
-import { computed } from 'vue';
+import type { StatField } from '../domain/rules';
+import type { Attribute, Character } from '../domain/types';
 
 const props = defineProps<{ character: Character; partyFull?: boolean }>();
 defineEmits<{
@@ -20,105 +17,93 @@ defineEmits<{
   toggleParty: [character: Character];
   'edit-weapon': [character: Character];
   'remove-weapon': [character: Character];
+  'set-stat': [character: Character, field: StatField];
 }>();
 
 const avatarSrc = computed(() => characterAvatar(props.character.id));
 const free = computed(() => freeLumina(props.character));
 const partyLocked = computed(() => !props.character.inParty && props.partyFull);
 const scaling = computed(() => weaponScaling(props.character.id, props.character.weapon, props.character.weaponLevel));
+const spend = computed(() => Object.entries(props.character.pending?.spend ?? {}).map(([attribute, amount]) => `+${amount} ${attributeLabels[attribute as Attribute]}`));
 </script>
 
 <template>
-  <Card class="character-card">
-    <template #content>
-      <div class="character-card__inner">
-        <div class="character-card__head">
-          <div class="character-card__identity">
-            <img class="character-avatar" :src="avatarSrc" :alt="`${character.name} avatar`" width="64" height="64" />
-            <div>
-            <h2>{{ character.name }}</h2>
-            <button type="button" class="party-toggle" :class="{ 'is-active': character.inParty }" :aria-pressed="character.inParty ? 'true' : 'false'" :disabled="partyLocked"
-              :title="partyLocked ? `The active combat party already has ${MAX_ACTIVE_PARTY} fighters` : character.inParty ? 'Fighting in the active combat party' : 'Mark as fighting in the active combat party'"
-              @click="$emit('toggleParty', character)">{{ character.inParty ? 'In combat party' : 'Benched' }}</button>
-            </div>
-          </div>
-          <div class="character-card__badges">
-            <Tag :value="`LV ${character.level}`" class="level-tag" />
-            <Tag :value="`${character.points} AP`" class="points-tag" :aria-label="`${character.points} attribute points available`" :title="`${character.points} attribute points available`" />
-            <Tag v-if="free !== undefined" :value="`${free} LP`" class="points-tag" :aria-label="`${free} Lumina points free`" :title="`${free} Lumina points free`" />
-          </div>
+  <UCard class="character-card h-full" :ui="{ body: 'flex h-full flex-col gap-5 p-5 sm:p-6' }">
+    <div class="character-card__head flex flex-wrap items-center justify-between gap-4 border-b border-default pb-5">
+      <div class="flex min-w-0 items-center gap-3.5">
+        <img class="character-avatar size-14 shrink-0 rounded-md object-cover sm:size-16" :src="avatarSrc" :alt="`${character.name} avatar`" width="64" height="64" />
+        <div class="grid justify-items-start gap-1.5">
+          <h2 class="text-3xl text-highlighted">{{ character.name }}</h2>
+          <UButton
+            class="party-toggle rounded-full"
+            size="xs"
+            :color="character.inParty ? 'primary' : 'neutral'"
+            :variant="character.inParty ? 'solid' : 'outline'"
+            :icon="character.inParty ? 'i-lucide-swords' : undefined"
+            :label="character.inParty ? 'In combat party' : 'Benched'"
+            :aria-pressed="character.inParty ? 'true' : 'false'"
+            :disabled="partyLocked"
+            :title="partyLocked ? `The active combat party already has ${MAX_ACTIVE_PARTY} fighters` : character.inParty ? 'Fighting in the active combat party' : 'Mark as fighting in the active combat party'"
+            @click="$emit('toggleParty', character)"
+          />
         </div>
-
-        <div class="character-weapon">
-          <Swords :size="16" :strokeWidth="1.8" aria-hidden="true" />
-          <div><span class="character-weapon__label">Equipped weapon</span><strong v-if="character.weapon">{{ character.weapon }}<span v-if="character.weaponLevel" class="character-weapon__level"> · Level {{ character.weaponLevel }}</span></strong><button v-else type="button" @click="$emit('edit-weapon', character)">Add weapon</button></div>
-          <div v-if="character.weapon" class="character-weapon__actions">
-            <button type="button" :aria-label="`Change ${character.name}’s weapon`" @click="$emit('edit-weapon', character)">Change</button>
-            <button type="button" :aria-label="`Remove ${character.name}’s weapon`" @click="$emit('remove-weapon', character)">Remove</button>
-          </div>
-        </div>
-
-        <div class="character-lumina">
-          <Sparkles :size="16" :strokeWidth="1.8" aria-hidden="true" />
-          <div>
-            <span class="character-weapon__label">Lumina points</span>
-            <strong v-if="character.lumina">{{ free }} free<span class="character-weapon__level"> · {{ character.lumina.spent }} of {{ character.lumina.total }} spent</span></strong>
-            <button v-else type="button" @click="$emit('update', character)">Add Lumina points</button>
-            <small v-if="free">Equip more Luminas from Pictos you’ve mastered to use them.</small>
-          </div>
-        </div>
-
-        <div class="stats" aria-label="Recorded attributes">
-          <div v-for="attribute in ATTRIBUTES" :key="attribute" class="stats__item" :class="{ 'is-scaling': scaling[attribute] }">
-            <span class="stats__label">{{ attributeLabels[attribute] }}</span>
-            <span class="stats__value">{{ character.invested[attribute] }}<span v-if="scaling[attribute]" class="scaling-grade" :title="`${character.weapon} scales with ${attributeLabels[attribute]}: grade ${scaling[attribute]}${character.weaponLevel ? ` at weapon level ${character.weaponLevel}` : ' (weapon level not recorded, showing the level 1 grade)'}`"><span class="sr-only">Weapon scaling grade </span>{{ scaling[attribute] }}</span></span>
-          </div>
-        </div>
-
-        <Message v-if="character.pending" severity="warn" :closable="false" class="recommendation">
-          <strong>Pending recommendation</strong>
-          <span class="recommendation__spend">
-            <span v-for="(amount, attribute) in character.pending.spend" :key="attribute">+{{ amount }} {{ attributeLabels[attribute] }} </span>
-          </span>
-          <small>{{ character.pending.explanation }}</small>
-          <ul v-if="character.pending.notes?.length" class="recommendation__notes">
-            <li v-for="note in character.pending.notes" :key="note">{{ note }}</li>
-          </ul>
-        </Message>
-
-        <div class="character-card__actions">
-          <Button label="Update progress" severity="secondary" outlined @click="$emit('update', character)" />
-          <Button label="Get advice" :aria-label="`Get advice for ${character.name}`" @click="$emit('advise', character)" />
-          <Button v-if="character.pending" label="I've applied these" @click="$emit('confirm', character)" />
-          <Button v-if="character.pending" label="Dismiss advice" severity="secondary" text @click="$emit('dismiss', character)" />
-        </div>
-
       </div>
-    </template>
-  </Card>
-</template>
+      <div class="character-card__badges ml-auto flex shrink-0 items-center gap-1.5">
+        <UButton class="level-tag font-bold tracking-widest tabular-nums" size="xs" color="primary" variant="soft" :label="`LV ${character.level}`" aria-haspopup="dialog" :title="`Set ${character.name}’s level`" @click="$emit('set-stat', character, 'level')" />
+        <UButton class="points-tag font-bold tracking-widest tabular-nums" size="xs" color="primary" variant="soft" :label="`${character.points} AP`" aria-haspopup="dialog" :aria-label="`${character.points} attribute points available`" :title="`${character.points} attribute points available. Select to set them.`" @click="$emit('set-stat', character, 'points')" />
+        <UBadge v-if="free !== undefined" class="points-tag font-bold tracking-widest tabular-nums" size="md" color="neutral" variant="subtle" :label="`${free} LP`" :aria-label="`${free} Lumina points free`" :title="`${free} Lumina points free`" />
+      </div>
+    </div>
 
-<style>
-.stats__item.is-scaling { margin: -6px -3px; padding: 6px 3px; border-radius: 6px; background: color-mix(in srgb, var(--gold) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent); }
-.stats__item.is-scaling .stats__label { color: var(--gold-strong); }
-.scaling-grade { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 4px; border-radius: 4px; background: var(--gold); color: var(--button-fg); font-family: var(--body); font-size: .66rem; font-weight: 700; line-height: 1; vertical-align: middle; }
-.stats__value .scaling-grade { margin-left: 5px; transform: translateY(-3px); }
-.attribute-row.is-scaling label, .setup-attribute.is-scaling label { color: var(--gold-strong); font-weight: 600; }
-.character-weapon { display: flex; align-items: center; gap: 10px; padding-top: 18px; color: var(--gold-strong); }
-.character-weapon > svg { flex: 0 0 auto; }
-.character-weapon > div { min-width: 0; }
-.character-weapon__actions { display: flex; gap: 14px; margin-left: auto; flex: 0 0 auto; }
-.character-weapon__label { display: block; color: var(--card-muted); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
-.character-weapon strong { display: block; overflow-wrap: anywhere; color: var(--card-fg); font-size: .85rem; font-weight: 600; }
-.character-weapon__level { color: var(--card-muted); font-weight: 500; }
-.character-lumina { display: flex; align-items: flex-start; gap: 10px; padding-top: 14px; color: var(--gold-strong); }
-.character-lumina > svg { flex: 0 0 auto; margin-top: 2px; }
-.character-lumina strong { display: block; color: var(--card-fg); font-size: .85rem; font-weight: 600; }
-.character-lumina small { display: block; margin-top: 4px; color: var(--card-muted); font-size: .72rem; line-height: 1.45; }
-.party-toggle { margin-top: 6px; min-height: 26px; padding: 3px 10px; border: 1px solid var(--card-line); border-radius: 999px; background: transparent; color: var(--card-muted); font-size: .7rem; font-weight: 600; letter-spacing: .04em; cursor: pointer; }
-.party-toggle.is-active { border-color: var(--gold); background: var(--gold); color: var(--button-fg); }
-.party-toggle:disabled { opacity: .45; cursor: default; }
-.party-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.character-weapon button, .character-lumina button { padding: 0; min-height: 28px; border: 0; background: transparent; color: var(--gold-strong); font-size: .85rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.character-weapon button:focus-visible, .character-lumina button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
-</style>
+    <div class="grid gap-4">
+      <div class="character-weapon flex items-center gap-3">
+        <UIcon name="i-lucide-swords" class="size-4 shrink-0 text-primary" />
+        <div class="min-w-0">
+          <span class="section-kicker block text-[0.65rem]">Equipped weapon</span>
+          <strong v-if="character.weapon" class="block font-semibold text-highlighted [overflow-wrap:anywhere]">{{ character.weapon }}<span v-if="character.weaponLevel" class="font-medium text-muted"> · Level {{ character.weaponLevel }}</span></strong>
+          <UButton v-else variant="link" class="px-0" label="Add weapon" @click="$emit('edit-weapon', character)" />
+        </div>
+        <div v-if="character.weapon" class="ml-auto flex shrink-0 gap-1">
+          <UButton variant="link" size="sm" label="Change" :aria-label="`Change ${character.name}’s weapon`" @click="$emit('edit-weapon', character)" />
+          <UButton variant="link" size="sm" color="neutral" label="Remove" :aria-label="`Remove ${character.name}’s weapon`" @click="$emit('remove-weapon', character)" />
+        </div>
+      </div>
+
+      <div class="character-lumina flex items-start gap-3">
+        <UIcon name="i-lucide-sparkles" class="mt-0.5 size-4 shrink-0 text-primary" />
+        <div class="min-w-0">
+          <span class="section-kicker block text-[0.65rem]">Lumina points</span>
+          <strong v-if="character.lumina" class="block font-semibold text-highlighted">{{ free }} free<span class="font-medium text-muted"> · {{ character.lumina.spent }} of {{ character.lumina.total }} spent</span></strong>
+          <UButton v-else variant="link" class="px-0" label="Add Lumina points" @click="$emit('update', character)" />
+          <small v-if="free" class="mt-1 block text-xs text-muted">Equip more Luminas from Pictos you’ve mastered to use them.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats grid grid-cols-5 gap-1.5" aria-label="Recorded attributes">
+      <button
+        v-for="attribute in ATTRIBUTES"
+        :key="attribute"
+        type="button"
+        class="stats__item min-w-0 cursor-pointer rounded-md px-1.5 py-2 text-left ring-inset transition-colors hover:bg-elevated hover:ring hover:ring-accented focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        :class="{ 'is-scaling bg-primary/10 ring ring-primary/30': scaling[attribute] }"
+        aria-haspopup="dialog"
+        :title="`Set ${attributeLabels[attribute]}`"
+        @click="$emit('set-stat', character, attribute)"
+      >
+        <span class="sr-only">Set </span>
+        <span class="stats__label block truncate text-[0.6rem] font-bold uppercase tracking-wider" :class="scaling[attribute] ? 'text-primary' : 'text-muted'">{{ attributeLabels[attribute] }}</span>
+        <span class="stats__value mt-1 flex items-center font-display text-2xl leading-none text-highlighted tabular-nums sm:text-3xl">{{ character.invested[attribute] }}<span v-if="scaling[attribute]" class="scaling-grade" :title="`${character.weapon} scales with ${attributeLabels[attribute]}: grade ${scaling[attribute]}${character.weaponLevel ? ` at weapon level ${character.weaponLevel}` : ' (weapon level not recorded, showing the level 1 grade)'}`"><span class="sr-only">Weapon scaling grade </span>{{ scaling[attribute] }}</span></span>
+      </button>
+    </div>
+
+    <Recommendation v-if="character.pending" title="Pending recommendation" :items="spend" :explanation="character.pending.explanation" :notes="character.pending.notes" />
+
+    <div class="character-card__actions mt-auto flex flex-wrap gap-2">
+      <UButton label="Update progress" color="neutral" variant="outline" @click="$emit('update', character)" />
+      <UButton label="Get advice" :variant="character.pending ? 'outline' : 'solid'" :aria-label="`Get advice for ${character.name}`" @click="$emit('advise', character)" />
+      <UButton v-if="character.pending" label="I've applied these" icon="i-lucide-check" @click="$emit('confirm', character)" />
+      <UButton v-if="character.pending" label="Dismiss advice" color="neutral" variant="ghost" @click="$emit('dismiss', character)" />
+    </div>
+  </UCard>
+</template>

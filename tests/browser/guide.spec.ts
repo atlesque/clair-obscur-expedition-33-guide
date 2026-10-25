@@ -38,16 +38,16 @@ async function saveCharacter(page: import('@playwright/test').Page) {
 }
 test.beforeEach(async ({page}) => { await page.goto('/'); await page.evaluate(() => localStorage.clear()); await page.reload(); });
 test('hides the current expedition control until a playthrough exists', async ({page}) => { await expect(page.getByRole('button',{name:'View all expeditions'})).toHaveCount(0); await createNew(page); await expect(page.getByRole('button',{name:'View all expeditions'})).toBeVisible(); });
-test('uses dark card surfaces in dark theme', async ({page}) => { await page.evaluate(() => localStorage.setItem('expedition-33-guide.theme','dark')); await page.reload(); await createNew(page); await expect(page.locator('.character-card').first()).toHaveCSS('background-color','rgb(23, 22, 20)'); await expect(page.getByRole('button',{name:'Add a character'})).toHaveCSS('background-color','rgb(23, 22, 20)'); await expect(page.getByRole('button',{name:'Add a character'})).toHaveCSS('color','rgb(235, 231, 223)'); });
+test('uses dark card surfaces in dark theme', async ({page}) => { await page.evaluate(() => localStorage.setItem('expedition-33-guide.theme','dark')); await page.reload(); await createNew(page); await expect(page.locator('.character-card').first()).toHaveCSS('background-color','rgb(31, 22, 11)'); await expect(page.getByRole('button',{name:'Add a character'})).toHaveCSS('background-color','rgb(31, 22, 11)'); await expect(page.getByRole('button',{name:'Add a character'})).toHaveCSS('color','rgb(246, 244, 241)'); });
 test('keeps setup controls readable in dark theme', async ({page}) => {
   await page.evaluate(() => localStorage.setItem('expedition-33-guide.theme','dark')); await page.reload();
   await page.getByRole('button',{name:/Start new expedition/}).click();
-  await expect(page.getByLabel('Playthrough name')).toHaveCSS('background-color','rgb(32, 30, 27)');
-  await expect(page.getByLabel('Playthrough name')).toHaveCSS('color','rgb(235, 231, 223)');
+  await expect(page.getByLabel('Playthrough name')).toHaveCSS('background-color','rgb(31, 22, 11)');
+  await expect(page.getByLabel('Playthrough name')).toHaveCSS('color','rgb(255, 255, 255)');
 });
 test('creates and reloads a named playthrough with initial party', async ({page}) => { await page.getByRole('button',{name:/Start new expedition/}).click(); await page.getByLabel('Playthrough name').fill('Night run'); await proceedSetup(page, 'Continue'); await finishNewParty(page); await expect(page.getByText('Night run',{exact:true})).toBeVisible(); await expect(page.getByRole('img',{name:'Gustave avatar'})).toBeVisible(); await expect(page.locator('.character-card__badges .level-tag').first()).toHaveText('LV 1'); await expect(page.locator('.character-card__badges .points-tag').first()).toHaveText('3 AP'); await expect(page.locator('.points-line')).toHaveCount(0); await expect(page.locator('.character-card__index')).toHaveCount(0); await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true); await page.reload(); await expect(page.getByText('Night run',{exact:true})).toBeVisible(); await expect(page.getByRole('heading',{name:'Gustave'})).toBeVisible(); });
 test('manages expeditions from the current expedition control', async ({page}) => { await createNew(page); await page.getByRole('button',{name:'View all expeditions'}).click(); await page.getByLabel('New expedition').fill('Late run'); await page.getByRole('button',{name:'Add expedition'}).click(); await expect(page.getByText('Late run',{exact:true})).toBeVisible(); await page.getByRole('button',{name:'View all expeditions'}).click(); await page.getByRole('button',{name:/My Expedition/}).click(); await expect(page.getByText('My Expedition',{exact:true})).toBeVisible(); await page.getByRole('button',{name:'View all expeditions'}).click(); await page.getByRole('button',{name:'Rename'}).first().click(); await page.getByLabel('Expedition name').fill('First run'); await page.getByRole('button',{name:'Save', exact:true}).click(); await expect(page.getByRole('button',{name:'View all expeditions'}).getByText('First run',{exact:true})).toBeVisible(); await page.getByRole('button',{name:'Delete'}).last().click(); await expect(page.getByRole('dialog',{name:'Delete expedition?'})).toBeVisible(); await page.getByRole('button',{name:'Delete expedition'}).click(); await expect(page.getByText('Late run',{exact:true})).toHaveCount(0); });
-test('cycles the always-visible theme control through auto, dark and light', async ({page}) => { const theme = page.getByRole('button',{name:/Theme:/}); await expect(theme).toHaveAttribute('data-theme-mode','auto'); await theme.click(); await expect(theme).toHaveAttribute('data-theme-mode','dark'); await expect(page.locator('html')).toHaveAttribute('data-theme','dark'); await theme.click(); await expect(theme).toHaveAttribute('data-theme-mode','light'); await expect(page.locator('html')).toHaveAttribute('data-theme','light'); await expect(page.locator('body')).toHaveCSS('background-color','rgb(246, 245, 242)'); await theme.click(); await expect(theme).toHaveAttribute('data-theme-mode','auto'); await page.reload(); await expect(page.getByRole('button',{name:/Theme: Auto/})).toBeVisible(); });
+test('cycles the always-visible theme control through auto, dark and light', async ({page}) => { const theme = page.getByRole('button',{name:/Theme:/}); await expect(theme).toHaveAttribute('data-theme-mode','auto'); await theme.click(); await expect(theme).toHaveAttribute('data-theme-mode','dark'); await expect(page.locator('html')).toHaveAttribute('data-theme','dark'); await theme.click(); await expect(theme).toHaveAttribute('data-theme-mode','light'); await expect(page.locator('html')).toHaveAttribute('data-theme','light'); await expect(page.locator('body')).toHaveCSS('background-color','rgb(255, 255, 255)'); await theme.click(); await expect(theme).toHaveAttribute('data-theme-mode','auto'); await page.reload(); await expect(page.getByRole('button',{name:/Theme: Auto/})).toBeVisible(); });
 test('deleting the only saved expedition returns to blank setup', async ({page}) => { await createNew(page); await page.getByRole('button',{name:'View all expeditions'}).click(); await expect(page.getByRole('button',{name:'Delete'})).toBeEnabled(); await page.getByRole('button',{name:'Delete'}).click(); await expect(page.getByRole('dialog',{name:'Delete expedition?'})).toBeVisible(); await page.getByRole('button',{name:'Delete expedition'}).click(); await expect(page.getByRole('button',{name:/Start new expedition/})).toBeVisible(); await expect(page.getByRole('button',{name:'View all expeditions'})).toHaveCount(0); await page.reload(); await expect(page.getByRole('button',{name:/Start new expedition/})).toBeVisible(); await expect(page.getByRole('button',{name:'View all expeditions'})).toHaveCount(0); });
 test('keeps advice pending through reload and confirms once', async ({page}) => { await createNew(page); await page.getByRole('button',{name:/Get advice for Gustave/}).click(); await expect(page.getByText('Pending recommendation')).toBeVisible(); await page.reload(); await expect(page.getByText('Pending recommendation')).toBeVisible(); await page.getByRole('button',{name:"I've applied these"}).click(); await expect(page.getByText('Applied recommendation recorded once.')).toBeVisible(); });
 test('dismisses pending advice and persists the dismissal', async ({page}) => { await createNew(page); await page.getByRole('button',{name:/Get advice for Gustave/}).click(); await expect(page.getByText('Pending recommendation')).toBeVisible(); await page.getByRole('button',{name:'Dismiss advice'}).click(); await expect(page.getByText('Pending recommendation')).toHaveCount(0); await page.reload(); await expect(page.getByText('Pending recommendation')).toHaveCount(0); });
@@ -434,7 +434,7 @@ test('clears the weapon field with its clear control', async ({page}) => {
   await page.locator('.character-card').first().getByRole('button',{name:'Update progress',exact:true}).click();
   const input = page.getByLabel('Equipped weapon',{exact:true});
   await expect(input).not.toHaveValue('');
-  await page.locator('.weapon-field .p-autocomplete-clear-icon').click();
+  await page.locator('.weapon-field [data-slot="trailingClear"]').click();
   await expect(input).toHaveValue('');
   await page.getByRole('button',{name:'Save progress',exact:true}).click();
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('equipped weapon');
@@ -452,4 +452,48 @@ test('builds attribute advice around the equipped weapon and drops it when the w
   await expect(gustave.getByText('Pending recommendation')).toHaveCount(0);
   await gustave.getByRole('button',{name:/Get advice for Gustave/}).click();
   await expect(gustave.locator('.recommendation')).toContainText('No equipped weapon is recorded');
+});
+
+test('dismisses a confirmation message', async ({page}) => {
+  await createNew(page);
+  const gustave = page.locator('.character-card').filter({has: page.getByRole('heading',{name:'Gustave',exact:true})});
+  await gustave.getByRole('button',{name:'Remove Gustave’s weapon',exact:true}).click();
+  await expect(page.getByText(/Removed Gustave’s weapon/)).toBeVisible();
+  await page.getByRole('button',{name:'Dismiss message',exact:true}).click();
+  await expect(page.getByText(/Removed Gustave’s weapon/)).toHaveCount(0);
+});
+
+test('sets the level, attribute points and an attribute directly from the card', async ({page}) => {
+  await createNew(page);
+  const gustave = page.locator('.character-card').filter({has: page.getByRole('heading',{name:'Gustave',exact:true})});
+  await gustave.getByRole('button',{name:/Get advice for Gustave/}).click();
+  await expect(gustave.getByText('Pending recommendation')).toBeVisible();
+  await gustave.locator('.level-tag').click();
+  const dialog = page.getByRole('dialog',{name:'Set Gustave’s level',exact:true});
+  await expect(dialog.getByRole('spinbutton',{name:'Level',exact:true})).toBeFocused();
+  await expect(dialog.getByText(/clears the pending recommendation/)).toBeVisible();
+  await dialog.getByRole('spinbutton',{name:'Level',exact:true}).fill('0');
+  await dialog.getByRole('button',{name:'Save',exact:true}).click();
+  await expect(dialog.getByRole('alert')).toContainText('1 to 99');
+  await dialog.getByRole('spinbutton',{name:'Level',exact:true}).fill('25');
+  await dialog.getByRole('button',{name:'Save',exact:true}).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(gustave.locator('.level-tag')).toHaveText('LV 25');
+  await expect(gustave.getByText('Pending recommendation')).toHaveCount(0);
+  await gustave.getByLabel('3 attribute points available',{exact:true}).click();
+  await page.getByRole('spinbutton',{name:'Available attribute points',exact:true}).fill('12');
+  await page.getByRole('button',{name:'Save',exact:true}).click();
+  await expect(gustave.locator('.points-tag')).toHaveText('12 AP');
+  await gustave.getByRole('button',{name:/^Set Might/}).click();
+  await page.getByRole('button',{name:'Increase Might',exact:true}).click();
+  await page.getByRole('button',{name:'Cancel',exact:true}).click();
+  await expect(gustave.getByRole('button',{name:/^Set Might/})).toContainText(/Might\s*\d+$/);
+  const might = await gustave.locator('.stats__value').nth(1).innerText();
+  await gustave.getByRole('button',{name:/^Set Might/}).click();
+  await page.getByRole('spinbutton',{name:'Might',exact:true}).fill(String(Number(might.match(/\d+/)![0]) + 4));
+  await page.keyboard.press('Enter');
+  await expect(gustave.locator('.stats__value').nth(1)).toContainText(String(Number(might.match(/\d+/)![0]) + 4));
+  await page.reload();
+  await expect(gustave.locator('.level-tag')).toHaveText('LV 25');
+  await expect(gustave.locator('.points-tag')).toHaveText('12 AP');
 });

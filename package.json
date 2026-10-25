@@ -12,17 +12,16 @@
   },
   "dependencies": {
     "@astrojs/vue": "^5.0.0",
-    "@lucide/vue": "^1.47.0",
-    "@primeuix/themes": "^2.0.3",
+    "@iconify-json/lucide": "^1.2.147",
+    "@nuxt/ui": "^4.12.0",
+    "@tailwindcss/vite": "^4.3.3",
     "astro": "^5.0.0",
-    "primevue": "^4.5.5",
     "vue": "^3.5.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.0",
-    "@astrojs/tailwind": "^6.0.2",
     "@playwright/test": "^1.63.0",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5.7.0",
     "vitest": "^2.1.0",
     "vue-tsc": "^3.3.11"
