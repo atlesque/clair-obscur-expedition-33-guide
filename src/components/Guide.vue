@@ -4,12 +4,13 @@ import ProgressFields from './ProgressFields.vue';
 import PartyWizard from './PartyWizard.vue';
 import type { SetupProgress } from '../domain/setup-url';
 import NumberInput from './NumberInput.vue';
+import WeaponField from './WeaponField.vue';
 import { INITIAL_CHARACTERS, LATER_CHARACTERS, attributeLabels, compareCharacterIds } from '../domain/data';
 import { emptyAttributes } from '../domain/types';
 import type { Character, Playthrough, SaveData } from '../domain/types';
-import { applyRecommendation, recommend, setStat, statLimits, updateProgress } from '../domain/rules';
+import { applyRecommendation, recommend, setStat, setWeapon, statLimits, updateProgress } from '../domain/rules';
 import type { StatField } from '../domain/rules';
-import { MAX_ACTIVE_PARTY, activeParty, applyColourPlan, planColours } from '../domain/lumina';
+import { MAX_ACTIVE_PARTY, MAX_LUMINA_POINTS, activeParty, applyColourPlan, planColours, setLumina } from '../domain/lumina';
 import ColourPanel from './ColourPanel.vue';
 import { clear, id, load, save } from '../domain/storage';
 import { readSetupDraft, writeSetupDraft } from '../domain/setup-url';
@@ -46,7 +47,6 @@ const formError = ref('');
 const wizardMode = ref<'update' | 'advice' | null>(null);
 const addingCandidate = ref(false);
 const revealedCandidate = ref<(typeof LATER_CHARACTERS)[number] | null>(null);
-const focusWeapon = ref(false);
 const draft = ref<SetupProgress>({ level: 1, points: 0, invested: emptyAttributes(), weapon: '', weaponLevel: 1 });
 const expeditionMenuOpen = ref(false);
 const renamingId = ref<string | null>(null);
@@ -57,6 +57,10 @@ const deleteTarget = ref<Playthrough | null>(null);
 const statTarget = ref<{ character: Character; field: StatField } | null>(null);
 const statDraft = ref(0);
 const statError = ref('');
+const fieldTarget = ref<{ character: Character; kind: 'weapon' | 'lumina' } | null>(null);
+const weaponDraft = ref({ weapon: '', weaponLevel: 1 });
+const luminaDraft = ref({ total: 0, spent: 0 });
+const fieldError = ref('');
 const themeMode = ref<ThemeMode>(readThemeMode());
 const setupBlocked = computed(() => unreadableSave || Boolean(saveError.value));
 
@@ -103,7 +107,7 @@ function setExpeditionMenu(open: boolean) {
 
 const playSync = createPlaySync({
   get: snapshot,
-  canSync: () => !unreadableSave && !wizardMode.value && !setupCharacter.value && !statTarget.value && !revealStage.value && !deleteTarget.value && !expeditionMenuOpen.value,
+  canSync: () => !unreadableSave && !wizardMode.value && !setupCharacter.value && !statTarget.value && !fieldTarget.value && !revealStage.value && !deleteTarget.value && !expeditionMenuOpen.value,
   apply: (data) => {
     const result = data ? save(data) : clear();
     if (!result.ok) { saveError.value = result.error ?? 'Could not store account progress on this device.'; return false; }
@@ -260,7 +264,6 @@ function deleteExpedition() {
 
 function beginSetup(character: Character) {
   formError.value = '';
-  focusWeapon.value = false;
   setupCharacter.value = character;
   draft.value = { level: character.level, points: character.points, invested: { ...character.invested }, weapon: character.weapon ?? '', weaponLevel: character.weaponLevel ?? 1, lumina: { ...(character.lumina ?? { total: 0, spent: 0 }) } };
 }
@@ -322,8 +325,34 @@ function advise(character: Character) {
 }
 
 function editWeapon(character: Character) {
-  beginSetup(character);
-  focusWeapon.value = true;
+  fieldError.value = '';
+  weaponDraft.value = { weapon: character.weapon ?? '', weaponLevel: character.weaponLevel ?? 1 };
+  fieldTarget.value = { character, kind: 'weapon' };
+}
+
+function editLumina(character: Character) {
+  fieldError.value = '';
+  luminaDraft.value = { ...(character.lumina ?? { total: 0, spent: 0 }) };
+  fieldTarget.value = { character, kind: 'lumina' };
+}
+
+function saveField() {
+  if (!active.value || !fieldTarget.value) return;
+  const { character, kind } = fieldTarget.value;
+  const index = active.value.characters.findIndex(item => item.id === character.id);
+  if (index < 0) return;
+  try {
+    const changed = kind === 'weapon' ? setWeapon(character, weaponDraft.value.weapon ?? '', weaponDraft.value.weaponLevel) : setLumina(character, luminaDraft.value.total, luminaDraft.value.spent);
+    const before = snapshot();
+    active.value.characters[index] = changed;
+    // A Colour plan was worked out from the old Lumina totals.
+    if (kind === 'lumina') active.value.colourPlan = undefined;
+    active.value.revision++;
+    if (persist(before)) fieldTarget.value = null;
+    else fieldError.value = saveError.value;
+  } catch (e) {
+    fieldError.value = e instanceof Error ? e.message : 'Enter a valid value.';
+  }
 }
 
 function removeWeapon(character: Character) {
@@ -603,6 +632,7 @@ function cancelReveal() {
               @confirm="confirm"
               @dismiss="dismiss"
               @edit-weapon="editWeapon"
+              @edit-lumina="editLumina"
               @remove-weapon="removeWeapon"
               @set-stat="beginStat"
             />
@@ -636,7 +666,29 @@ function cancelReveal() {
           </form>
         </FocusDialog>
 
-        <FocusDialog v-if="setupCharacter" :title="`Update ${setupCharacter.name}`" :focusWeapon="focusWeapon" @close="cancelSetup">
+        <FocusDialog v-if="fieldTarget" :title="fieldTarget.kind === 'weapon' ? `${fieldTarget.character.name}’s weapon` : `${fieldTarget.character.name}’s Lumina points`" :focusWeapon="fieldTarget.kind === 'weapon'" @close="fieldTarget = null">
+          <form novalidate class="grid gap-5" @submit.prevent="saveField">
+            <UAlert v-if="fieldError" role="alert" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="fieldError" />
+            <template v-if="fieldTarget.kind === 'weapon'">
+              <WeaponField v-model="weaponDraft.weapon" :level="weaponDraft.weaponLevel" :characterId="fieldTarget.character.id" @update:level="weaponDraft.weaponLevel = $event" />
+              <p v-if="fieldTarget.character.pending" class="text-sm text-muted">Saving clears the pending recommendation, since it was built around the old weapon.</p>
+            </template>
+            <div v-else class="grid gap-5 sm:grid-cols-2">
+              <UFormField label="Total Lumina points">
+                <NumberInput v-model="luminaDraft.total" inputId="lumina-total-input" label="Total Lumina points" :max="MAX_LUMINA_POINTS" />
+              </UFormField>
+              <UFormField label="Spent Lumina points">
+                <NumberInput v-model="luminaDraft.spent" inputId="lumina-spent-input" label="Spent Lumina points" :max="MAX_LUMINA_POINTS" />
+              </UFormField>
+            </div>
+            <div class="dialog-actions flex flex-wrap justify-end gap-2">
+              <UButton type="button" label="Cancel" color="neutral" variant="ghost" @click="fieldTarget = null" />
+              <UButton type="submit" icon="i-lucide-check" label="Save" />
+            </div>
+          </form>
+        </FocusDialog>
+
+        <FocusDialog v-if="setupCharacter" :title="`Update ${setupCharacter.name}`" @close="cancelSetup">
           <div class="dialog-intro mb-5 grid gap-2">
             <span class="section-kicker text-primary">Reconcile your save</span>
             <p class="text-muted">Enter what is true in-game. This replaces the recorded inputs and clears old advice.</p>

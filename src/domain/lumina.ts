@@ -72,3 +72,8 @@ export const isColourPlan = (value: unknown): value is ColourPlan => {
   const counts = (record: unknown) => !!record && typeof record === 'object' && Object.values(record).every(amount => Number.isInteger(amount) && (amount as number) >= 0);
   return Number.isInteger(plan.colours) && plan.colours! >= 0 && counts(plan.base) && counts(plan.give) && typeof plan.explanation === 'string';
 };
+
+/** Records a character's Lumina points on their own. Attribute advice does not depend on them, so it stays pending. */
+export function setLumina(character: Character, total: number, spent: number): Character {
+  return { ...character, lumina: validateLumina(total, spent) };
+}
