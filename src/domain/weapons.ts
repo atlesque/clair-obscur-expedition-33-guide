@@ -158,5 +158,8 @@ export function gradeAtLevel(base: ScalingGrade, weaponLevel = 1): ScalingGrade 
   return GRADES[Math.min(GRADES.indexOf(base) + upgrades, GRADES.length - 1)];
 }
 
+/** The next upgrade level that raises every grade, if any remain. */
+export const nextGradeUpgrade = (weaponLevel = 1): number | undefined => GRADE_UPGRADE_LEVELS.find(level => level > weaponLevel);
+
 export const weaponScaling = (characterId: CharacterId, name?: string, weaponLevel?: number): Partial<Record<Attribute, ScalingGrade>> =>
   Object.fromEntries((findWeapon(characterId, name)?.scaling ?? []).map(entry => [entry.attribute, gradeAtLevel(entry.grade, weaponLevel)]));

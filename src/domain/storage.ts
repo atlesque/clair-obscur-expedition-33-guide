@@ -8,7 +8,7 @@ const isAttributes = (value: unknown): value is Attributes => typeof value === '
 const isRecommendation = (value: unknown): value is Recommendation => {
   if (!value || typeof value !== 'object') return false;
   const r = value as Partial<Recommendation>;
-  const basePoints = r.basePoints; const points = r.points; return typeof r.characterId === 'string' && isAttributes(r.base) && typeof basePoints === 'number' && Number.isInteger(basePoints) && basePoints >= 0 && !!r.spend && typeof r.spend === 'object' && Object.entries(r.spend).every(([key, amount]) => ATTRIBUTES.includes(key as typeof ATTRIBUTES[number]) && Number.isInteger(amount) && (amount as number) >= 0) && typeof points === 'number' && Number.isInteger(points) && points >= 0 && Number.isInteger(r.revision) && typeof r.explanation === 'string';
+  const basePoints = r.basePoints; const points = r.points; return typeof r.characterId === 'string' && isAttributes(r.base) && typeof basePoints === 'number' && Number.isInteger(basePoints) && basePoints >= 0 && !!r.spend && typeof r.spend === 'object' && Object.entries(r.spend).every(([key, amount]) => ATTRIBUTES.includes(key as typeof ATTRIBUTES[number]) && Number.isInteger(amount) && (amount as number) >= 0) && typeof points === 'number' && Number.isInteger(points) && points >= 0 && Number.isInteger(r.revision) && typeof r.explanation === 'string' && (r.notes === undefined || (Array.isArray(r.notes) && r.notes.every(note => typeof note === 'string')));
 };
 const isCharacter = (value: unknown): value is Character => {
   if (!value || typeof value !== 'object') return false;

@@ -32,8 +32,3 @@ export const characterAvatar = (characterId: CharacterId): string => {
   return CHARACTER_AVATARS[characterId] ?? '/avatars/default.svg';
 };
 export const attributeLabels: Record<string,string> = { vitality:'Vitality', might:'Might', agility:'Agility', defence:'Defence', luck:'Luck' };
-export const ATTRIBUTE_PRIORITIES = {
-  gustave: { weights: { vitality: 0.4, might: 0.3, agility: 0.15, defence: 0.1, luck: 0.05 }, source: 'Editorial forgiving first-playthrough ratio; not a sourced game statistic and does not account for equipped-weapon scaling.' },
-  lune: { weights: { vitality: 0.4, might: 0.2, agility: 0.2, defence: 0.1, luck: 0.1 }, source: 'Editorial forgiving first-playthrough ratio; not a sourced game statistic and does not account for equipped-weapon scaling.' },
-  default: { weights: { vitality: 0.4, might: 0.3, agility: 0.15, defence: 0.1, luck: 0.05 }, source: 'Shared editorial fallback for later characters: balances health and reliable damage when equipped-weapon scaling is unknown; not a sourced game statistic.' }
-} as const;

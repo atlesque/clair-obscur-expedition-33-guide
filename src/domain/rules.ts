@@ -1,11 +1,10 @@
 import { ATTRIBUTES, cloneAttributes } from './types';
 import type { Attributes, Character, Lumina, Recommendation } from './types';
-import { ATTRIBUTE_PRIORITIES } from './data';
+import { attributePlan } from './advice';
 import { MAX_WEAPON_LEVEL, isWeaponLevel } from './weapons';
 import { validateLumina } from './lumina';
-const weights = (character: Character): Record<keyof Attributes, number> => (ATTRIBUTE_PRIORITIES[character.id as keyof typeof ATTRIBUTE_PRIORITIES] ?? ATTRIBUTE_PRIORITIES.default).weights;
 export function recommend(character: Character): Recommendation {
-  const spend: Partial<Attributes> = {}; let left = character.points; const target=weights(character);
+  const spend: Partial<Attributes> = {}; let left = character.points; const plan = attributePlan(character); const target = plan.weights;
   while (left) {
     const candidates = ATTRIBUTES.filter(a => character.invested[a] + (spend[a] ?? 0) < 99);
     const attribute = candidates.sort((a,b) => {
@@ -16,7 +15,7 @@ export function recommend(character: Character): Recommendation {
     if (!attribute) break;
     spend[attribute]=(spend[attribute]??0)+1; left--;
   }
-  return { characterId: character.id, base: cloneAttributes(character.invested), basePoints: character.points, spend, points: character.points - left, explanation: character.points ? 'Prioritises survivability first, then reliable damage, while respecting each attribute cap. This general advice does not account for equipped-weapon scaling.' : 'There are no available attribute points to allocate.', revision: character.level };
+  return { characterId: character.id, base: cloneAttributes(character.invested), basePoints: character.points, spend, points: character.points - left, explanation: character.points ? plan.explanation : `There are no available attribute points to allocate. ${plan.explanation}`, notes: plan.notes, revision: character.level };
 }
 export function applyRecommendation(character: Character, rec: Recommendation): Character { if (rec.revision !== character.level || rec.characterId !== character.id || rec.base.vitality !== character.invested.vitality || rec.base.might !== character.invested.might || rec.base.agility !== character.invested.agility || rec.base.defence !== character.invested.defence || rec.base.luck !== character.invested.luck || rec.points > character.points) return character;
   if (rec.basePoints !== character.points || Object.values(rec.spend).some(v => !Number.isInteger(v) || v! < 0) || rec.points !== Object.values(rec.spend).reduce((a,v)=>a+(v??0),0)) return character;

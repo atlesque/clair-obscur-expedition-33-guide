@@ -341,6 +341,8 @@ function removeWeapon(character: Character) {
   const before = snapshot();
   delete character.weapon;
   delete character.weaponLevel;
+  // Advice built around the old weapon's scaling no longer applies.
+  character.pending = undefined;
   active.value.revision++;
   if (persist(before)) notice.value = `Removed ${character.name}’s weapon. Add the one equipped in-game when you’re ready.`;
 }
@@ -770,6 +772,8 @@ button, input { font: inherit; }
 .recommendation strong { display: block; margin-bottom: 7px; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; }
 .recommendation__spend { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--gold-strong); font-weight: 700; }
 .recommendation small { display: block; margin-top: 8px; line-height: 1.5; }
+.recommendation__notes { margin: 8px 0 0; padding-left: 18px; font-size: .8rem; line-height: 1.5; }
+.recommendation__notes li + li { margin-top: 4px; }
 .character-card__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
 .character-card__actions .p-button { min-height: 38px; border-radius: 6px; font-size: .79rem; }
 .character-card__actions .p-button:not(.p-button-outlined):not(.p-button-text) { background: var(--gold); border-color: var(--gold); color: var(--button-fg); }
