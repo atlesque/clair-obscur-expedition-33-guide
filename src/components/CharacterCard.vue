@@ -81,6 +81,9 @@ const scaling = computed(() => weaponScaling(props.character.id, props.character
             <span v-for="(amount, attribute) in character.pending.spend" :key="attribute">+{{ amount }} {{ attributeLabels[attribute] }} </span>
           </span>
           <small>{{ character.pending.explanation }}</small>
+          <ul v-if="character.pending.notes?.length" class="recommendation__notes">
+            <li v-for="note in character.pending.notes" :key="note">{{ note }}</li>
+          </ul>
         </Message>
 
         <div class="character-card__actions">

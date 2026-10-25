@@ -439,3 +439,17 @@ test('clears the weapon field with its clear control', async ({page}) => {
   await page.getByRole('button',{name:'Save progress',exact:true}).click();
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('equipped weapon');
 });
+
+test('builds attribute advice around the equipped weapon and drops it when the weapon goes', async ({page}) => {
+  await createNew(page);
+  const gustave = page.locator('.character-card').filter({has: page.getByRole('heading',{name:'Gustave',exact:true})});
+  await gustave.getByRole('button',{name:/Get advice for Gustave/}).click();
+  await expect(gustave.locator('.recommendation')).toContainText('Abysseram scales with Vitality (C) and Defence (D) at weapon level 1');
+  await expect(gustave.locator('.recommendation__notes li').first()).toContainText('Might');
+  await page.reload();
+  await expect(gustave.locator('.recommendation')).toContainText('Abysseram scales with Vitality (C)');
+  await gustave.getByRole('button',{name:'Remove Gustave’s weapon',exact:true}).click();
+  await expect(gustave.getByText('Pending recommendation')).toHaveCount(0);
+  await gustave.getByRole('button',{name:/Get advice for Gustave/}).click();
+  await expect(gustave.locator('.recommendation')).toContainText('No equipped weapon is recorded');
+});
