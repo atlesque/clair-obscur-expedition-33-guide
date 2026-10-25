@@ -4,8 +4,17 @@ import { findWeapon, gradeAtLevel, searchWeapons, weaponScaling, weaponsFor } fr
 describe('weapons', () => {
   it('gives every character their own weapon pool', () => {
     for (const id of ['gustave', 'lune', 'maelle', 'sciel', 'verso', 'monoco']) expect(weaponsFor(id).length).toBeGreaterThan(0);
-    expect(weaponsFor('verso').some(w => w.name === 'Noahram')).toBe(false);
+    expect(weaponsFor('lune').some(w => w.name === 'Maellum')).toBe(false);
     expect(weaponsFor('unknown')).toEqual([]);
+  });
+
+  it('lets Gustave and Verso equip both the Noah and Verso sword families', () => {
+    for (const id of ['gustave', 'verso']) {
+      expect(searchWeapons(id, 'Gaul').map(w => w.name)).toEqual(['Gaulteram']);
+      expect(searchWeapons(id, 'Verl').map(w => w.name)).toEqual(['Verleso']);
+      expect(weaponsFor(id)).toHaveLength(27);
+    }
+    expect(weaponScaling('verso', 'Gaulteram')).toEqual({ agility: 'C', luck: 'D' });
   });
 
   it('only searches after three letters and matches name prefixes for that character', () => {
